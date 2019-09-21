@@ -1,0 +1,2 @@
+include ':app', ':okbus', ':processor', ':plugin',":annotation"
+rootProject.name='OkBus'
