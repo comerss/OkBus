@@ -1,4 +1,7 @@
 apply plugin: 'com.android.application'
+apply plugin: 'com.comers.plugin'
+//apply plugin: 'com.comers'
+
 android {
     compileSdkVersion 29
     defaultConfig {
@@ -16,11 +19,9 @@ android {
         }
     }
 }
-
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'androidx.appcompat:appcompat:1.0.2'
-    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
     implementation project(path: ':annotation')
 }
 

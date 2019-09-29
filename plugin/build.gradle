@@ -22,7 +22,7 @@ repositories {
 uploadArchives {
     repositories {
         mavenDeployer {
-            pom.groupId = 'com.comers.okbus'   //groupId
+            pom.groupId = 'com.comers.plugin'   //groupId
             pom.artifactId = 'comers'  //artifactId
             pom.version = '1.0.0' //版本号
             //提交到远程服务器：
@@ -30,7 +30,7 @@ uploadArchives {
             //    authentication(userName: "admin", password: "admin")
             // }
             //本地的Maven地址设置为
-            repository(url: uri("/Users/yingtian/Downloads"))
+            repository(url: uri("../repo"))
 
         }
     }
