@@ -9,7 +9,9 @@ dependencies {
     implementation 'com.squareup:javapoet:1.11.1'
 
     implementation 'de.greenrobot:java-common:2.3.1'
-    implementation project(path: ':annotation')
+    api project(path: ':annotation')
 
 }
 
+sourceCompatibility = 1.8
+targetCompatibility = 1.8

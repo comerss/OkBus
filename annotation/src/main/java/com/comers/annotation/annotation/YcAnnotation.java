@@ -1,15 +1,13 @@
 package com.comers.annotation.annotation;
 
-import com.comers.annotation.mode.ThreadMode;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
+@Target(ElementType.TYPE)
 @Retention(RetentionPolicy.CLASS)
-@Target(ElementType.METHOD)
-public @interface EventReceiver {
-    ThreadMode threadMode() default ThreadMode.POST_THREAD;
-    Class[] from() default {};
+public @interface YcAnnotation {
+    String name() default "";
+    String text() default "";
 }

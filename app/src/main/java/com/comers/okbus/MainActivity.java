@@ -5,8 +5,12 @@ import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.comers.annotation.annotation.EventReceiver;
+import com.comers.annotation.annotation.YcAnnotation;
 
-
+@YcAnnotation(
+        name = "annotation",
+        text = "you welcome === "
+)
 public class MainActivity extends AppCompatActivity {
 
     @Override
@@ -16,7 +20,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @EventReceiver(from = {MainActivity.class})
-    public void dataChanged() {
+    public void dataChanged(Integer hahha) {
 
     }
 }
