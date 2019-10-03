@@ -1,11 +1,14 @@
 package com.comers.processor;
 
 import com.comers.annotation.annotation.EventReceiver;
+import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -25,6 +28,7 @@ import javax.lang.model.util.Elements;
 import javax.tools.Diagnostic;
 
 import de.greenrobot.common.ListMap;
+
 public class OkBusProcessor extends AbstractProcessor {
 
     private Filer filer;
@@ -46,18 +50,20 @@ public class OkBusProcessor extends AbstractProcessor {
     @Override
     public synchronized void init(ProcessingEnvironment processingEnvironment) {
         super.init(processingEnvironment);
+
         filer = processingEnvironment.getFiler();
         elements = processingEnvironment.getElementUtils();
-        processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE,"我是一个OkBusProcessor");
-        createFile();
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "我是一个OkBusProcessor");
+
     }
 
     @Override
     public boolean process(Set<? extends TypeElement> set, RoundEnvironment roundEnvironment) {
-        processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE,"要开始注解结识了啊");
-
-        collectSubscribers(set,roundEnvironment,processingEnv.getMessager());
-
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "要开始注解结识了啊");
+        //收集所有的注解的信息以及所在类的信息
+        collectSubscribers(set, roundEnvironment, processingEnv.getMessager());
+        //1. 需要生成一个保存所有需要修改类的文件，留给javassit 好知道需要修改哪些类
+        createFile();
         return true;
     }
 
@@ -72,7 +78,6 @@ public class OkBusProcessor extends AbstractProcessor {
                     if (checkHasNoErrors(method, messager)) {
                         TypeElement classElement = (TypeElement) method.getEnclosingElement();
                         methodsByClass.putElement(classElement, method);
-                        //收集注解所在类的信息
                     }
                 } else {
                     messager.printMessage(Diagnostic.Kind.ERROR, "@EventReceiver is only valid for methods", element);
@@ -82,18 +87,36 @@ public class OkBusProcessor extends AbstractProcessor {
     }
 
     private void createFile() {
-        processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE,"创建一个文件");
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "创建一个文件---->ProcessorHelper");
+
         TypeSpec.Builder classBuilder = TypeSpec.classBuilder("ProcessorHelper")
                 .addModifiers(Modifier.PUBLIC);
-
+        ClassName list = ClassName.get("java.util", "ArrayList");
         MethodSpec constructer = MethodSpec.methodBuilder("ProcessorHelper")
                 .addModifiers(Modifier.PUBLIC)
                 .build();
+        MethodSpec.Builder getInfo = MethodSpec.methodBuilder("getInfo")
+                .returns(ArrayList.class)
+                .addModifiers(Modifier.PUBLIC);
 
-        JavaFile javaFile = JavaFile.builder("com.comers.processor", classBuilder.addMethod(constructer).build()).build();
+        CodeBlock.Builder getInfoBlock = CodeBlock.builder()
+                .add("$T list = new $T();\n", list, list);
+        Set<TypeElement> clazzs = methodsByClass.keySet();
+
+        for (TypeElement element : clazzs) {
+            getInfoBlock.add("list.$N(" + "\"" + element.getQualifiedName() + "\"" + ");\n", "add");
+        }
+
+        getInfoBlock.add("return list");
+
+        getInfo.addStatement(getInfoBlock.build());
+
+        classBuilder.addMethod(getInfo.build());
+        classBuilder.addMethod(constructer);
+        JavaFile javaFile = JavaFile.builder("com.comers.okbus", classBuilder.build()).build();
 
         try {
-            javaFile.writeTo(new File("/Volumes/Work/works/OkBus/processor/src/main/java"));
+            javaFile.writeTo(new File("/Volumes/Work/works/OkBus/app/src/main/java/"));
         } catch (Exception e) {
             e.printStackTrace();
         }

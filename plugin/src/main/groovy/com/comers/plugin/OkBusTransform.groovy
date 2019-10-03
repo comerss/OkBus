@@ -18,7 +18,6 @@ import javax.xml.crypto.dsig.TransformException
 
 class OkBusTransform extends Transform {
 
-    private static final def CLICK_LISTENER = "android.view.View\$OnClickListener"
 
     def pool = ClassPool.default
     def project
@@ -50,7 +49,7 @@ class OkBusTransform extends Transform {
     @Override
     void transform(TransformInvocation transformInvocation) throws TransformException, InterruptedException, IOException {
         super.transform(transformInvocation)
-
+//        ProcessorHelper helper = new ProcessorHelper()
         project.android.bootClasspath.each {
             pool.appendClassPath(it.absolutePath)
         }
@@ -75,8 +74,10 @@ class OkBusTransform extends Transform {
             it.directoryInputs.each {
                 def preFileName = it.file.absolutePath
                 pool.insertClassPath(preFileName)
-
+                println "preFileName: " + it.file.absolutePath
+//                if (helper.getInfo().contains(preFileName)) {
                 findTarget(it.file, preFileName)
+//                }
 
                 // 获取output目录
                 def dest = transformInvocation.outputProvider.getContentLocation(
@@ -90,6 +91,8 @@ class OkBusTransform extends Transform {
                 // 将input的目录复制到output指定目录
                 FileUtils.copyDirectory(it.file, dest)
             }
+
+
         }
     }
 
@@ -121,6 +124,7 @@ class OkBusTransform extends Transform {
                 .substring(1)
 
         CtClass ctClass = pool.get(name)
+       Object[] annotations =ctClass.getAnnotations()
         CtClass[] interfaces = ctClass.getInterfaces()
         if (interfaces.contains(pool.get(CLICK_LISTENER))) {
             if (name.contains("\$")) {
