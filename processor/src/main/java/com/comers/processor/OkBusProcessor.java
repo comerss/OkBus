@@ -8,6 +8,8 @@ import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -26,6 +28,7 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.util.Elements;
 import javax.tools.Diagnostic;
+import javax.tools.JavaFileObject;
 
 import de.greenrobot.common.ListMap;
 
@@ -64,7 +67,29 @@ public class OkBusProcessor extends AbstractProcessor {
         collectSubscribers(set, roundEnvironment, processingEnv.getMessager());
         //1. 需要生成一个保存所有需要修改类的文件，留给javassit 好知道需要修改哪些类
         createFile();
+//        saveInfo();
         return true;
+    }
+
+    private void saveInfo() {
+        StringBuffer buffer = new StringBuffer();
+        Set<TypeElement> clazzs = methodsByClass.keySet();
+
+        for (TypeElement element : clazzs) {
+            buffer.append( "\"" + element.getQualifiedName() + "\"");
+        }
+
+        try { // write the file
+            JavaFileObject source = filer.createSourceFile("com.example.yore.myannotation.");
+            Writer writer = source.openWriter();
+            writer.write(buffer.toString());
+            writer.flush();
+            writer.close();
+        } catch (IOException e) {
+            // Note: calling e.printStackTrace() will print IO errors
+            // that occur from the file already existing after its first run, this is normal
+        }
+
     }
 
     private void collectSubscribers(Set<? extends TypeElement> annotations, RoundEnvironment env, Messager messager) {
@@ -112,11 +137,11 @@ public class OkBusProcessor extends AbstractProcessor {
         getInfo.addStatement(getInfoBlock.build());
 
         classBuilder.addMethod(getInfo.build());
-        classBuilder.addMethod(constructer);
-        JavaFile javaFile = JavaFile.builder("com.comers.okbus", classBuilder.build()).build();
+//        classBuilder.addMethod(constructer);
+        JavaFile javaFile = JavaFile.builder("com.comers.plugin", classBuilder.build()).build();
 
         try {
-            javaFile.writeTo(new File("/Volumes/Work/works/OkBus/app/src/main/java/"));
+            javaFile.writeTo(new File("/Volumes/Work/works/OkBus/plugin/src/main/groovy/"));
         } catch (Exception e) {
             e.printStackTrace();
         }

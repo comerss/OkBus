@@ -7,10 +7,7 @@ import com.android.build.api.transform.Transform
 import com.android.build.api.transform.TransformInvocation
 import com.android.build.gradle.internal.pipeline.TransformManager
 import javassist.ClassPool
-import javassist.CtClass
-import javassist.CtField
 import javassist.CtMethod
-import org.apache.commons.codec.digest.DigestUtils
 import org.apache.commons.io.FileUtils
 import org.gradle.api.Project
 
@@ -49,10 +46,12 @@ class OkBusTransform extends Transform {
     @Override
     void transform(TransformInvocation transformInvocation) throws TransformException, InterruptedException, IOException {
         super.transform(transformInvocation)
-//        ProcessorHelper helper = new ProcessorHelper()
+
         project.android.bootClasspath.each {
             pool.appendClassPath(it.absolutePath)
         }
+
+//        def  helper=new ProcessorHelper()
 
         transformInvocation.inputs.each {
 
@@ -67,6 +66,7 @@ class OkBusTransform extends Transform {
                 }
                 def dest = transformInvocation.outputProvider.getContentLocation(
                         jarName + md5Name, it.contentTypes, it.scopes, Format.JAR)
+
                 FileUtils.copyFile(it.file, dest)
             }
 
@@ -74,17 +74,12 @@ class OkBusTransform extends Transform {
             it.directoryInputs.each {
                 def preFileName = it.file.absolutePath
                 pool.insertClassPath(preFileName)
-                println "preFileName: " + it.file.absolutePath
-//                if (helper.getInfo().contains(preFileName)) {
                 findTarget(it.file, preFileName)
-//                }
-
-                // 获取output目录
+//                // 获取output目录
                 def dest = transformInvocation.outputProvider.getContentLocation(
                         it.name,
                         it.contentTypes,
-                        it.scopes,
-                        Format.DIRECTORY)
+                        it.scopes, Format.DIRECTORY)
 
                 println "copy directory: " + it.file.absolutePath
                 println "dest directory: " + dest.absolutePath
@@ -92,8 +87,20 @@ class OkBusTransform extends Transform {
                 FileUtils.copyDirectory(it.file, dest)
             }
 
-
         }
+//        def list=helper.info
+
+        /*for (String str:list){
+            *//*def ctClass = pool.get(str)
+            def methods = ctClass.getDeclaredMethods()
+            for (CtMethod method : methods) {
+                if (method.getAnnotations().contains("com.comers.annotation.annotation.EventReceiver")) {
+                    CtMethod methodss = CtMethod.make("public void see(String hello){" + "System.out.println(hello);" + "}", ctClass)
+                    ctClass.addMethod(methodss)
+                }
+            }*//*
+        }*/
+
     }
 
     private void findTarget(File dir, String fileName) {
@@ -107,6 +114,7 @@ class OkBusTransform extends Transform {
     }
 
     private void modify(File dir, String fileName) {
+
         def filePath = dir.absolutePath
 
         if (!filePath.endsWith(SdkConstants.DOT_CLASS)) {
@@ -116,50 +124,37 @@ class OkBusTransform extends Transform {
                 || filePath.contains("BuildConfig.class")) {
             return
         }
-
         def className = filePath.replace(fileName, "")
                 .replace("\\", ".")
                 .replace("/", ".")
-        def name = className.replace(SdkConstants.DOT_CLASS, "")
-                .substring(1)
 
-        CtClass ctClass = pool.get(name)
-       Object[] annotations =ctClass.getAnnotations()
-        CtClass[] interfaces = ctClass.getInterfaces()
-        if (interfaces.contains(pool.get(CLICK_LISTENER))) {
-            if (name.contains("\$")) {
-                println "class is inner class：" + ctClass.name
-                println "CtClass: " + ctClass
-                CtClass outer = pool.get(name.substring(0, name.indexOf("\$")))
+        def name = className.replace(SdkConstants.DOT_CLASS, "").substring(1)
 
-                CtField field = ctClass.getFields().find {
-                    return it.type == outer
-                }
-                if (field != null) {
-                    println "fieldStr: " + field.name
-                    def body = "android.widget.Toast.makeText(" + field.name + "," +
-                            "\"javassist\", android.widget.Toast.LENGTH_SHORT).show();"
-                    addCode(ctClass, body, fileName)
-                }
-            } else {
-                println "class is outer class: " + ctClass.name
-                //更改onClick函数
-                def body = "android.widget.Toast.makeText(\$1.getContext(), \"javassist\", android.widget.Toast.LENGTH_SHORT).show();"
-                addCode(ctClass, body, fileName)
-            }
+        if (name.startsWith(".")) {
+            name = name.substring(1, name.length())
         }
+        def ctClass = pool.get(name)
+        def methods = ctClass.getDeclaredMethods()
+
+
+        for (CtMethod method : methods) {
+            Object[] list = method.getAvailableAnnotations()
+            if (list.length > 0) {
+                def annotation = list[0].getAt("h").getAt("annotation")
+                LinkedHashMap map = annotation.getProperties()
+                String typeName = map.get("typeName")
+                if ("com.comers.annotation.annotation.EventReceiver".equals(typeName)) {
+                    LinkedHashMap members = annotation.getAt("members")
+                    Class[] obj = members.get("from").getAt("value")
+                    println(members.get("threadMode").getAt("value"))
+                }
+            }
+
+            /* if (method.getAnnotations().contains("com.comers.annotation.annotation.EventReceiver")) {
+                 CtMethod methodss = CtMethod.make("public void see(String hello){" + "System.out.println(hello);" + "}", ctClass)
+                 ctClass.addMethod(methodss)
+             }*/
+        }
+
     }
-
-    private void addCode(CtClass ctClass, String body, String fileName) {
-
-        ctClass.defrost()
-        CtMethod method = ctClass.getDeclaredMethod("onClick", pool.get("android.view.View"))
-        method.insertAfter(body)
-
-        ctClass.writeFile(fileName)
-        ctClass.detach()
-        println "write file: " + fileName + "\\" + ctClass.name
-        println "modify method: " + method.name + " succeed"
-    }
-
 }

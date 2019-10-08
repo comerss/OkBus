@@ -9,7 +9,6 @@ dependencies {
 
     implementation 'org.javassist:javassist:3.20.0-GA'
     implementation 'com.android.tools.build:gradle:3.5.0'
-
 }
 
 repositories {
