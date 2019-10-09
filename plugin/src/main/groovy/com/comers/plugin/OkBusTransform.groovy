@@ -9,6 +9,7 @@ import com.android.build.gradle.internal.pipeline.TransformManager
 import javassist.*
 import javassist.bytecode.annotation.ArrayMemberValue
 import javassist.bytecode.annotation.IntegerMemberValue
+import kotlin.reflect.jvm.internal.impl.builtins.KotlinBuiltIns
 import org.apache.commons.io.FileUtils
 import org.gradle.api.Project
 
@@ -20,6 +21,7 @@ class OkBusTransform extends Transform {
     def pool = ClassPool.default
     def project
     def helper = new ProcessorHelper()
+    String destDir
 
     OkBusTransform(Project project) {
         this.project = project
@@ -48,7 +50,6 @@ class OkBusTransform extends Transform {
     @Override
     void transform(TransformInvocation transformInvocation) throws TransformException, InterruptedException, IOException {
         super.transform(transformInvocation)
-
         project.android.bootClasspath.each {
             pool.appendClassPath(it.absolutePath)
         }
@@ -74,13 +75,14 @@ class OkBusTransform extends Transform {
             it.directoryInputs.each {
                 def preFileName = it.file.absolutePath
                 pool.insertClassPath(preFileName)
-                findTarget(it.file, preFileName)
 //                // 获取output目录
+                destDir = preFileName
+                findTarget(it.file, preFileName)
+
                 def dest = transformInvocation.outputProvider.getContentLocation(
                         it.name,
                         it.contentTypes,
                         it.scopes, Format.DIRECTORY)
-
                 println "copy directory: " + it.file.absolutePath
                 println "dest directory: " + dest.absolutePath
                 // 将input的目录复制到output指定目录
@@ -121,15 +123,15 @@ class OkBusTransform extends Transform {
             name = name.substring(1, name.length())
         }
 
-        if(!helper.getInfo().contains(name)||name.endsWith("_Helper")){
+        if (!helper.getInfo().contains(name) || name.endsWith("_Helper")) {
             return
         }
 
-        createNewFile(dir,name)
+        createNewFile(dir, name)
 
     }
 
-    private void createNewFile(File dir,String name) {
+    private void createNewFile(File dir, String name) {
         CtClass ctClass = pool.get(name)
 
         def methods = ctClass.getDeclaredMethods()
@@ -155,61 +157,64 @@ class OkBusTransform extends Transform {
             }
         }
 
+
         //生成对应的辅助文件 作为调用的桥梁
-        CtClass newClass = pool.makeClass("com.comers.okbus." + getClazzName(ctClass.getName()) + "_Helper")
+        CtClass newClass = pool.makeClass(getClazzName(ctClass.getName()) + "_Helper")
 
         //成员变量
         CtField ctField = new CtField(ctClass, "target", newClass)
         newClass.addField(ctField)
 
         //构造函数
-        CtConstructor constructor = CtNewConstructor.make("public " + getClazzName(ctClass.getName()) + " (" + ctClass.getName() + " target){this.target=target;}",newClass)
+        CtConstructor constructor = CtNewConstructor.make("public " + getClazzName(ctClass.getName()) + " (" + ctClass.getName() + " target){this.target=target;}", newClass)
         newClass.addConstructor(constructor)
-        newClass.writeFile(dir.getParent())
+        newClass.writeFile(dir.getParent().replace("com.comers.okbus", ""))
         newClass.defrost()
 
 
-        CtClass okbus=pool.get("com.comers.okbus.Okbus")
+         // 修改OkBus 来处理对应的能能够调用的方法
+         //等遍历完所有的文件之后 我们需要修改 oKbus 来完成事件的真正分发 与 调用
+         CtClass okbus = pool.get("com.comers.okbus.OkBus")
+         if(okbus.isFrozen()){
+             okbus.defrost()
+         }
 
-        //根据上面被注解的方法的参数类型 添加需要调用的方法
-//        CtClass okbus=pool.makeClass("com.comers.okbus.OkBus")
-        okbus.defrost()
-        CtField busFiled=CtField.make("public String str",okbus)
-        okbus.addField(busFiled)
-        okbus.writeFile(dir.getParent())
+         CtMethod register=okbus.getDeclaredMethod("register")
+        println(destDir)
+         StringBuffer buffer=new StringBuffer()
+         buffer.append("if(android.text.TextUtils.equals(target.getClass().getName().toString(),\""+ctClass.getName()+"\")){")
+         buffer.append("objDeque.add(")
+         buffer.append("new "+newClass.getName()+"(("+ctClass.getName()+")target)")
+         buffer.append(");")
+         buffer.append("}")
+         if(okbus.isFrozen()){
+             okbus.defrost()
+         }
+         register.insertAfter(buffer.toString())
+         okbus.writeFile(destDir)
+       /* println(destDir)
+        CtClass okbus = pool.get("com.comers.okbus.OkBus")
+        if (okbus.isFrozen()) {
+            okbus.defrost()
+        }
 
-        println(newClass.getDeclaredMethods())
-        println(newClass.getDeclaredFields())
+        CtField field = okbus.getFields().find {
+            return it.type == pool.get("java.lang.String")
+        }
+        if (field == null) {
+            CtField busFiled = new CtField(pool.get("java.lang.String"), "str", okbus)
+            okbus.addField(busFiled)
+        }
+        okbus.writeFile(destDir)*/
+        okbus.detach()
+
+
     }
 
-    //获取文件  带包名 的名字 例如 com.comers.okbus.OkBus
+//获取文件  带包名 的名字 例如 com.comers.okbus.OkBus
     String getClazzName(String fileName) {
-       String name=fileName.substring(fileName.lastIndexOf(".")+1,fileName.length())
+        String name = fileName.substring(fileName.lastIndexOf(".") + 1, fileName.length())
         return name
     }
 
-    String getName(String fileName) {
-        def className = filePath.replace(fileName, "")
-                .replace("\\", ".")
-                .replace("/", ".")
-
-        def name = className.replace(SdkConstants.DOT_CLASS, "").substring(1)
-
-        if (name.startsWith(".")) {
-            name = name.substring(1, name.length())
-        }
-        return name
-    }
-
-    boolean checkFile(String filePath) {
-        if (!filePath.endsWith(SdkConstants.DOT_CLASS)) {
-            return false
-        }
-        if (filePath.contains('R$') || filePath.contains('R.class')
-                || filePath.contains("BuildConfig.class")) {
-            return false
-        }
-
-        return true
-    }
 }
