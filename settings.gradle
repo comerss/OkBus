@@ -1,2 +1,2 @@
-include ':app', ':okbus', ':processor', ':plugin', ":annotation"
+include ':app', ':processor', ':plugin', ':okbus', ":annotation"
 rootProject.name='OkBus'

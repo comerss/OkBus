@@ -164,14 +164,20 @@ class OkBusTransform extends Transform {
 
         //构造函数
         CtConstructor constructor = CtNewConstructor.make("public " + getClazzName(ctClass.getName()) + " (" + ctClass.getName() + " target){this.target=target;}",newClass)
-
-        //根据上面被注解的方法的参数类型 添加需要调用的方法
-
-
-
         newClass.addConstructor(constructor)
         newClass.writeFile(dir.getParent())
         newClass.defrost()
+
+
+        CtClass okbus=pool.get("com.comers.okbus.Okbus")
+
+        //根据上面被注解的方法的参数类型 添加需要调用的方法
+//        CtClass okbus=pool.makeClass("com.comers.okbus.OkBus")
+        okbus.defrost()
+        CtField busFiled=CtField.make("public String str",okbus)
+        okbus.addField(busFiled)
+        okbus.writeFile(dir.getParent())
+
         println(newClass.getDeclaredMethods())
         println(newClass.getDeclaredFields())
     }

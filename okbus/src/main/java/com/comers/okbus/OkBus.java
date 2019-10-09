@@ -1,26 +1,23 @@
 package com.comers.okbus;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.LinkedHashMap;
 
 public class OkBus {
+    public static OkBus INSTANCE = new OkBus();
+    private LinkedHashMap<Class, Object> objectLinkedHashMap = new LinkedHashMap<>();
+
     private OkBus() {
     }
 
-    private OkBus INSTANCE = new OkBus();
+    public void post(String text) {
 
-    public OkBus getDefault() {
-        return INSTANCE;
     }
 
-    private Map<Class, Object> interfaces = new HashMap<>();
+    public void post(String text, Class to) {
+
+    }
 
     public void register(Object target) {
-        interfaces.put(target.getClass(), target);
+        objectLinkedHashMap.put(target.getClass(), target);
     }
-
-    public void post(Object data, Class to) {
-
-    }
-
 }

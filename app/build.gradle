@@ -5,7 +5,7 @@ apply plugin: 'com.comers.plugin'
 android {
     compileSdkVersion 29
     defaultConfig {
-        applicationId "com.comers.okbus"
+        applicationId "com.comers.bus"
         minSdkVersion 16
         targetSdkVersion 29
         versionCode 1
@@ -26,6 +26,7 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'androidx.appcompat:appcompat:1.0.2'
     implementation project(path: ':annotation')
+    implementation project(path: ':okbus')
     annotationProcessor project(path: ':processor')
 
 }
