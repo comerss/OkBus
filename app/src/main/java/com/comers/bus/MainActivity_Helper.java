@@ -1,8 +1,10 @@
 package com.comers.bus;
 
+import java.util.ArrayList;
+
 public class MainActivity_Helper {
     MainActivity target;
-
+   ArrayList<Object> tags=new ArrayList<>();
     public MainActivity_Helper(MainActivity var1) {
         this.target = var1;
     }

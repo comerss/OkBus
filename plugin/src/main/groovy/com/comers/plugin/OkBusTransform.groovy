@@ -81,8 +81,8 @@ class OkBusTransform extends Transform {
 
 
                 //先清除已经生成的文件 以免造成文件内容重复
-                File file = new File(destDir+"/com/comers/okbus")
-                println(file.absolutePath +"------>"+file.exists())
+                File file = new File(destDir + "/com/comers/okbus")
+                println(file.absolutePath + "------>" + file.exists())
                 if (file.exists()) {
                     FileUtils.deleteDirectory(file)
                 }
@@ -164,7 +164,7 @@ class OkBusTransform extends Transform {
                     IntegerMemberValue integerMemberValue = members.get("threadMode").getAt("value")
                     int mode = integerMemberValue.value
                     if (mode < 1 || mode > 4) {
-                        throw new IllegalArgumentException(ctClass.name+"  EventReceiver threadMode must be one of Mode， or between 1 and 4 ")
+                        throw new IllegalArgumentException(ctClass.name + "  EventReceiver threadMode must be one of Mode， or between 1 and 4 ")
                     }
                     methodList.add(method)
                 }
@@ -187,25 +187,23 @@ class OkBusTransform extends Transform {
         //成员变量 存储方法能接受的参数类型
 
 
-
         //构造函数
         CtConstructor constructor = CtNewConstructor.make("public " + getClazzName(ctClass.getName()) + " (" + ctClass.getName() + " target){this.target=target;}", helper)
         helper.addConstructor(constructor)
 
         //构造post方法 并进行事件分发
-        CtClass[] para= [pool.get("java.lang.Object")]
-        CtMethod post =new CtMethod(CtClass.voidType,"post",para ,helper)
-        StringBuffer postBody=new StringBuffer()
+        StringBuffer postBody = new StringBuffer()
+        postBody.append("public void post(java.lang.Object obj){")
         for (CtMethod ctMethod : methodList) {
-            postBody.append("{"+/if($1/+".getClass().getName().equals("+ctMethod.getParameterTypes()[0].name+")){")
-            postBody.append("this.target."+ctMethod.name+"(("+ctMethod.getParameterTypes()[0].getClass().name.toString()+")"+ /$1/+");")
-            postBody.append("}}")
+            postBody.append("if(obj.getClass().getName().equals("+"\"" + ctMethod.getParameterTypes()[0].name+"\"" + ")){")
+            postBody.append("this.target." + ctMethod.name + "((" + ctMethod.getParameterTypes()[0].name.toString() + ")obj);}")
         }
-        post.setBody(postBody.toString())
+        postBody.append("}")
+        println(postBody.toString())
+        CtMethod post = CtNewMethod.make(postBody.toString(), helper)
         helper.addMethod(post)
         helper.writeFile(destDir)
         helper.defrost()
-
 
 
         // 修改OkBus 来处理对应的能能够调用的方法
