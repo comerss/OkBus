@@ -5,7 +5,6 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 
-
 import com.comers.okbus.OkBus;
 
 public class OkBusActivity extends AppCompatActivity {

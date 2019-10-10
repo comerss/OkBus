@@ -2,13 +2,14 @@ package com.comers.bus;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.webkit.HttpAuthHandler;
 import android.widget.TextView;
 
 
 import com.comers.annotation.annotation.EventReceiver;
 import com.comers.annotation.mode.Mode;
 import com.comers.okbus.OkBus;
+
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -20,10 +21,15 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         OkBus.INSTANCE.register(this);
         txShowText = findViewById(R.id.txShowText);
+        OkBus.INSTANCE.post("hahahha",OkBusActivity.class);
     }
 
     @EventReceiver(from = {MainActivity.class}, threadMode = Mode.MAIN)
     public void dataChanged(Integer hahha) {
-        txShowText.setText(hahha.toString());
+        txShowText.setText(hahha+"---->00000");
+    }
+    @EventReceiver(from = {MainActivity.class}, threadMode = Mode.MAIN)
+    public void changed(String hahha) {
+        txShowText.setText(hahha+"---->00000");
     }
 }
