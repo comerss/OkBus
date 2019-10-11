@@ -7,11 +7,17 @@ import com.android.build.api.transform.Transform
 import com.android.build.api.transform.TransformInvocation
 import com.android.build.gradle.internal.pipeline.TransformManager
 import javassist.*
+import javassist.bytecode.AnnotationsAttribute
+import javassist.bytecode.ClassFile
+import javassist.bytecode.ConstPool
+import javassist.bytecode.annotation.Annotation
 import javassist.bytecode.annotation.ArrayMemberValue
 import javassist.bytecode.annotation.IntegerMemberValue
 import kotlin.reflect.jvm.internal.impl.builtins.KotlinBuiltIns
 import org.apache.commons.io.FileUtils
 import org.gradle.api.Project
+import org.gradle.internal.impldep.org.junit.Assert
+import org.omg.CORBA.ObjectHelper
 import sun.management.MethodInfo
 
 import javax.xml.crypto.dsig.TransformException
@@ -51,6 +57,7 @@ class OkBusTransform extends Transform {
     @Override
     void transform(TransformInvocation transformInvocation) throws TransformException, InterruptedException, IOException {
         super.transform(transformInvocation)
+        pool.clearImportedPackages()
         project.android.bootClasspath.each {
             pool.appendClassPath(it.absolutePath)
         }
@@ -69,6 +76,8 @@ class OkBusTransform extends Transform {
                 //不能copy okbus 的jar包 因为后面修改的时候没法覆盖jar包里面的Okbus造成 有两个okbus 造成冲突
                 if (!it.file.absolutePath.contains("okbus/build/intermediates/")) {
                     FileUtils.copyFile(it.file, dest)
+                }else {
+
                 }
             }
 
@@ -79,7 +88,6 @@ class OkBusTransform extends Transform {
 //                // 获取output目录
                 destDir = preFileName
 
-
                 //先清除已经生成的文件 以免造成文件内容重复
                 File file = new File(destDir + "/com/comers/okbus")
                 println(file.absolutePath + "------>" + file.exists())
@@ -89,7 +97,8 @@ class OkBusTransform extends Transform {
 
                 //查询需要修稿的文件
                 findTarget(it.file, preFileName)
-
+                //修改 OkBus
+                editOkBus()
 
                 def dest = transformInvocation.outputProvider.getContentLocation(
                         it.name,
@@ -102,7 +111,10 @@ class OkBusTransform extends Transform {
             }
 
         }
+
+        pool.clearImportedPackages()
     }
+
 
     private void findTarget(File dir, String fileName) {
         if (dir.isDirectory()) {
@@ -145,6 +157,14 @@ class OkBusTransform extends Transform {
 
     private void createNewFile(File dir, String name) {
         CtClass ctClass = pool.get(name)
+       /* if (EventReceiver == null) {
+            EventReceiver = pool.get("com.comers.annotation.annotation.EventReceiver").toClass()
+        }
+
+        if (!ctClass.hasAnnotation(EventReceiver)) {
+            ctClass.detach()
+            return
+        }*/
         if (ctClass.isFrozen()) {
             ctClass.defrost()
         }
@@ -177,9 +197,20 @@ class OkBusTransform extends Transform {
             return
         }
 
+        //创建统一的接口类
+        CtClass absHelper=pool.makeInterface("com.comers.okbus.AbstractHelper")
+        CtMethod absPost=CtNewMethod.make("public void post(java.lang.Object obj);",absHelper)
+        absHelper.addMethod(absPost)
+        absHelper.writeFile(destDir)
+        absHelper.defrost()
+
+
 
         //生成对应的辅助文件 作为调用的桥梁
         CtClass helper = pool.makeClass("com.comers.okbus." + getClazzName(ctClass.getName()) + "_Helper")
+        CtClass helperSuper = pool.get("com.comers.okbus.AbstractHelper")
+//        helper.setSuperclass(helperSuper)
+        helper.addInterface(helperSuper)
 
         //成员变量 目标类，也就是最终调用方法的类
         CtField ctField = new CtField(ctClass, "target", helper)
@@ -195,16 +226,16 @@ class OkBusTransform extends Transform {
         StringBuffer postBody = new StringBuffer()
         postBody.append("public void post(java.lang.Object obj){")
         for (CtMethod ctMethod : methodList) {
-            postBody.append("if(obj.getClass().getName().equals("+"\"" + ctMethod.getParameterTypes()[0].name+"\"" + ")){")
+            postBody.append("if(obj.getClass().getName().equals(" + "\"" + ctMethod.getParameterTypes()[0].name + "\"" + ")){")
             postBody.append("this.target." + ctMethod.name + "((" + ctMethod.getParameterTypes()[0].name.toString() + ")obj);}")
         }
+
         postBody.append("}")
         println(postBody.toString())
         CtMethod post = CtNewMethod.make(postBody.toString(), helper)
         helper.addMethod(post)
         helper.writeFile(destDir)
         helper.defrost()
-
 
         // 修改OkBus 来处理对应的能能够调用的方法
         //等遍历完所有的文件之后 我们需要修改 oKbus 来完成事件的真正分发 与 调用
@@ -213,8 +244,9 @@ class OkBusTransform extends Transform {
             okbus.defrost()
         }
 
+
+        //修改注册方法
         CtMethod register = okbus.getDeclaredMethod("register")
-        println(destDir)
         StringBuffer buffer = new StringBuffer()
         buffer.append("if(android.text.TextUtils.equals(target.getClass().getName().toString(),\"" + ctClass.getName() + "\")){")
         buffer.append("objDeque.put(target.getClass(),")
@@ -222,14 +254,60 @@ class OkBusTransform extends Transform {
         buffer.append(");")
         buffer.append("}")
         register.insertAfter(buffer.toString())
-        okbus.writeFile(destDir)
-        okbus.detach()
 
     }
+
+
+    private void editOkBus(){
+        // 修改OkBus 来处理对应的能能够调用的方法
+        //等遍历完所有的文件之后 我们需要修改 oKbus 来完成事件的真正分发 与 调用
+        CtClass okbus = pool.get("com.comers.okbus.OkBus")
+        if (okbus.isFrozen()) {
+            okbus.defrost()
+        }
+
+        //修改post方法
+        CtMethod pos = okbus.getDeclaredMethod("post")
+        String posEdit="java.util.Iterator var2 = this.objDeque.values().iterator();\n" +
+                "\n" +
+                "        while(var2.hasNext()) {\n" +
+                "        com.comers.okbus.AbstractHelper  helper = (com.comers.okbus.AbstractHelper)var2.next();\n" +
+                /helper.post($1);/ +
+                "        }"
+
+        pos.insertAfter(posEdit)
+        okbus.writeFile(destDir)
+        okbus.detach()
+    }
+
+
 
     String getClazzName(String fileName) {
         String name = fileName.substring(fileName.lastIndexOf(".") + 1, fileName.length())
         return name
     }
+
+    /*private static ClassLoader getLocaleClassLoader() throws Exception {
+        List<URL> classPathURLs = new ArrayList<>();
+        // 加载.class文件路径
+        classPathURLs.add(classesPath.toURI().toURL());
+
+        // 获取所有的jar文件
+        File[] jarFiles = libPath.listFiles(new FilenameFilter() {
+            @Override
+            public boolean accept(File dir, String name) {
+                return name.endsWith(".jar");
+            }
+        });
+        Assert.assertFalse(ObjectHelper.isArrayNullOrEmpty(jarFiles));
+
+        // 将jar文件路径写入集合
+        for (File jarFile : jarFiles) {
+            classPathURLs.add(jarFile.toURI().toURL());
+        }
+
+        // 实例化类加载器
+        return new URLClassLoader(classPathURLs.toArray(new URL[classPathURLs.size()]));
+    }*/
 
 }

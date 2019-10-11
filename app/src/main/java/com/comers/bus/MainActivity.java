@@ -1,7 +1,9 @@
 package com.comers.bus;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.view.View;
 import android.widget.TextView;
 
 
@@ -22,6 +24,13 @@ public class MainActivity extends AppCompatActivity {
         OkBus.INSTANCE.register(this);
         txShowText = findViewById(R.id.txShowText);
         OkBus.INSTANCE.post("hahahha",OkBusActivity.class);
+        txShowText.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent=new Intent(MainActivity.this,OkBusActivity.class);
+                startActivity(intent);
+            }
+        });
     }
 
     @EventReceiver(from = {MainActivity.class}, threadMode = Mode.MAIN)

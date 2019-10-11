@@ -2,10 +2,11 @@ package com.comers.okbus;
 
 import java.util.ArrayDeque;
 import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class OkBus {
     public static OkBus INSTANCE = new OkBus();
-    private LinkedHashMap<Class, Object> objDeque = new LinkedHashMap<>();
+    private LinkedHashMap<Class, ? extends AbstractHelper> objDeque = new LinkedHashMap<>();
 
     private OkBus() {
     }
@@ -36,6 +37,5 @@ public class OkBus {
     }
 
     public void register(Object target) {
-
     }
 }
