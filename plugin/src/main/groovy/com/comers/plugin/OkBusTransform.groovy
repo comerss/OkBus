@@ -76,7 +76,7 @@ class OkBusTransform extends Transform {
                 //不能copy okbus 的jar包 因为后面修改的时候没法覆盖jar包里面的Okbus造成 有两个okbus 造成冲突
                 if (!it.file.absolutePath.contains("okbus/build/intermediates/")) {
                     FileUtils.copyFile(it.file, dest)
-                }else {
+                } else {
 
                 }
             }
@@ -95,10 +95,15 @@ class OkBusTransform extends Transform {
                     FileUtils.deleteDirectory(file)
                 }
 
+                CtClass absHelper = pool.get("com.comers.okbus.AbstractHelper")
+                absHelper.defrost()
+                absHelper.writeFile(destDir)
+
+
                 //查询需要修稿的文件
                 findTarget(it.file, preFileName)
                 //修改 OkBus
-                editOkBus()
+//                editOkBus()
 
                 def dest = transformInvocation.outputProvider.getContentLocation(
                         it.name,
@@ -157,14 +162,14 @@ class OkBusTransform extends Transform {
 
     private void createNewFile(File dir, String name) {
         CtClass ctClass = pool.get(name)
-       /* if (EventReceiver == null) {
-            EventReceiver = pool.get("com.comers.annotation.annotation.EventReceiver").toClass()
-        }
+        /* if (EventReceiver == null) {
+             EventReceiver = pool.get("com.comers.annotation.annotation.EventReceiver").toClass()
+         }
 
-        if (!ctClass.hasAnnotation(EventReceiver)) {
-            ctClass.detach()
-            return
-        }*/
+         if (!ctClass.hasAnnotation(EventReceiver)) {
+             ctClass.detach()
+             return
+         }*/
         if (ctClass.isFrozen()) {
             ctClass.defrost()
         }
@@ -197,19 +202,11 @@ class OkBusTransform extends Transform {
             return
         }
 
-        //创建统一的接口类
-        CtClass absHelper=pool.makeInterface("com.comers.okbus.AbstractHelper")
-        CtMethod absPost=CtNewMethod.make("public void post(java.lang.Object obj);",absHelper)
-        absHelper.addMethod(absPost)
-        absHelper.writeFile(destDir)
-        absHelper.defrost()
-
-
 
         //生成对应的辅助文件 作为调用的桥梁
         CtClass helper = pool.makeClass("com.comers.okbus." + getClazzName(ctClass.getName()) + "_Helper")
         CtClass helperSuper = pool.get("com.comers.okbus.AbstractHelper")
-//        helper.setSuperclass(helperSuper)
+        helperSuper.defrost()
         helper.addInterface(helperSuper)
 
         //成员变量 目标类，也就是最终调用方法的类
@@ -254,11 +251,12 @@ class OkBusTransform extends Transform {
         buffer.append(");")
         buffer.append("}")
         register.insertAfter(buffer.toString())
+        okbus.writeFile(destDir)
 
     }
 
 
-    private void editOkBus(){
+    private void editOkBus() {
         // 修改OkBus 来处理对应的能能够调用的方法
         //等遍历完所有的文件之后 我们需要修改 oKbus 来完成事件的真正分发 与 调用
         CtClass okbus = pool.get("com.comers.okbus.OkBus")
@@ -268,7 +266,7 @@ class OkBusTransform extends Transform {
 
         //修改post方法
         CtMethod pos = okbus.getDeclaredMethod("post")
-        String posEdit="java.util.Iterator var2 = this.objDeque.values().iterator();\n" +
+        String posEdit = "java.util.Iterator var2 = this.objDeque.values().iterator();\n" +
                 "\n" +
                 "        while(var2.hasNext()) {\n" +
                 "        com.comers.okbus.AbstractHelper  helper = (com.comers.okbus.AbstractHelper)var2.next();\n" +
@@ -279,7 +277,6 @@ class OkBusTransform extends Transform {
         okbus.writeFile(destDir)
         okbus.detach()
     }
-
 
 
     String getClazzName(String fileName) {

@@ -1,6 +1,7 @@
 package com.comers.okbus;
 
 import java.util.ArrayDeque;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -12,8 +13,12 @@ public class OkBus {
     }
 
 
-    public void post(Object text) {
-
+    public void post(Object obj) {
+        Iterator it = this.objDeque.values().iterator();
+        while (it.hasNext()) {
+            AbstractHelper helper = (AbstractHelper) it.next();
+            helper.post(obj);
+        }
     }
 
     public void post(Object text, Class... to) {
@@ -37,5 +42,9 @@ public class OkBus {
     }
 
     public void register(Object target) {
+    }
+
+    public void unregister(Object target) {
+        objDeque.remove(target.getClass());
     }
 }
