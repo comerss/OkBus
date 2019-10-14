@@ -57,6 +57,9 @@ public class OkBus {
     }
 
     public void register(Object target) {
+        if(objDeque.containsKey(target.getClass())){
+            return;
+        }
     }
 
     public void unregister(Object target) {

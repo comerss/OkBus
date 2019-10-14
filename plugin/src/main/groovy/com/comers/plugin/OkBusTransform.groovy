@@ -103,6 +103,7 @@ class OkBusTransform extends Transform {
                 CtClass absHelper = pool.get("com.comers.okbus.AbstractHelper")
                 absHelper.defrost()
                 absHelper.writeFile(destDir)
+                //需要修改的文件的集合
                 def list = helper.getInfo()
                 for (String str : list) {
                     createNewFile(str)
@@ -253,7 +254,7 @@ class OkBusTransform extends Transform {
         //修改注册方法
         CtMethod register = okbus.getDeclaredMethod("register")
         StringBuffer buffer = new StringBuffer()
-        buffer.append("if(android.text.TextUtils.equals(target.getClass().getName().toString(),\"" + ctClass.getName() + "\")){")
+        buffer.append("if(android.text.TextUtils.equals(target.getClass().getName().toString(),\"" + ctClass.getName() + "\")&&!objDeque.containsKey(target.getClass())){")
         buffer.append("objDeque.put(target.getClass(),")
         buffer.append("new " + helper.getName().toString() + "((" + ctClass.getName() + ")target)")
         buffer.append(");")
@@ -261,29 +262,6 @@ class OkBusTransform extends Transform {
         register.insertAfter(buffer.toString())
         okbus.writeFile(destDir)
 
-    }
-
-
-    private void editOkBus() {
-        // 修改OkBus 来处理对应的能能够调用的方法
-        //等遍历完所有的文件之后 我们需要修改 oKbus 来完成事件的真正分发 与 调用
-        CtClass okbus = pool.get("com.comers.okbus.OkBus")
-        if (okbus.isFrozen()) {
-            okbus.defrost()
-        }
-
-        //修改post方法
-        CtMethod pos = okbus.getDeclaredMethod("post")
-        String posEdit = "java.util.Iterator var2 = this.objDeque.values().iterator();\n" +
-                "\n" +
-                "        while(var2.hasNext()) {\n" +
-                "        com.comers.okbus.AbstractHelper  helper = (com.comers.okbus.AbstractHelper)var2.next();\n" +
-                /helper.post($1);/ +
-                "        }"
-
-        pos.insertAfter(posEdit)
-        okbus.writeFile(destDir)
-        okbus.detach()
     }
 
 

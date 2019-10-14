@@ -27,7 +27,6 @@ public class MainActivity_Helper {
         if (target.get() != null) {
             to.changed(text);
         }
-
     }
 
 

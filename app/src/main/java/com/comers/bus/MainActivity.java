@@ -38,8 +38,10 @@ public class MainActivity extends AppCompatActivity {
     public void dataChanged(Integer hahha) {
         txShowText.setText(hahha+"---->00000");
     }
+
     @EventReceiver( threadMode = Mode.MAIN)
     public void changed(String hahha) {
         txShowText.setText(hahha+"---->00000");
     }
+
 }
