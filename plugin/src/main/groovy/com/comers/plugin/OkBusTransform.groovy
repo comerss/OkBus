@@ -13,6 +13,7 @@ import javassist.bytecode.ConstPool
 import javassist.bytecode.annotation.Annotation
 import javassist.bytecode.annotation.ArrayMemberValue
 import javassist.bytecode.annotation.IntegerMemberValue
+import javassist.bytecode.annotation.StringMemberValue
 import kotlin.reflect.jvm.internal.impl.builtins.KotlinBuiltIns
 import org.apache.commons.io.FileUtils
 import org.gradle.api.Project
@@ -74,6 +75,7 @@ class OkBusTransform extends Transform {
                 def dest = transformInvocation.outputProvider.getContentLocation(
                         jarName + md5Name, it.contentTypes, it.scopes, Format.JAR)
                 //不能copy okbus 的jar包 因为后面修改的时候没法覆盖jar包里面的Okbus造成 有两个okbus 造成冲突
+                //TODO 如果打成jar包的话怎么让他不copy  现在还在项目中能这么搞，以后打成jar  这里需要修改
                 if (!it.file.absolutePath.contains("okbus/build/intermediates/")) {
                     FileUtils.copyFile(it.file, dest)
                 } else {
@@ -87,24 +89,24 @@ class OkBusTransform extends Transform {
                 pool.insertClassPath(preFileName)
 //                // 获取output目录
                 destDir = preFileName
-
+                //查询需要修稿的文件
+//                findTarget(it.file, preFileName)
+                //修改 OkBus
+//                editOkBus()
                 //先清除已经生成的文件 以免造成文件内容重复
                 File file = new File(destDir + "/com/comers/okbus")
                 println(file.absolutePath + "------>" + file.exists())
                 if (file.exists()) {
                     FileUtils.deleteDirectory(file)
                 }
-
+                //将okbus 目录下的类不会被写到目标目录所以需要手动写到目录
                 CtClass absHelper = pool.get("com.comers.okbus.AbstractHelper")
                 absHelper.defrost()
                 absHelper.writeFile(destDir)
-
-
-                //查询需要修稿的文件
-                findTarget(it.file, preFileName)
-                //修改 OkBus
-//                editOkBus()
-
+                def list = helper.getInfo()
+                for (String str : list) {
+                    createNewFile(str)
+                }
                 def dest = transformInvocation.outputProvider.getContentLocation(
                         it.name,
                         it.contentTypes,
@@ -156,12 +158,13 @@ class OkBusTransform extends Transform {
             return
         }
 
-        createNewFile(dir, name)
+//        createNewFile(dir, name)
 
     }
 
-    private void createNewFile(File dir, String name) {
+    private void createNewFile(String name) {
         CtClass ctClass = pool.get(name)
+        //TODO 这里需要定义CLassLoader 来寻找Receiver 的class  目前会报错
         /* if (EventReceiver == null) {
              EventReceiver = pool.get("com.comers.annotation.annotation.EventReceiver").toClass()
          }
@@ -185,7 +188,7 @@ class OkBusTransform extends Transform {
                 String typeName = map.get("typeName")
                 if ("com.comers.annotation.annotation.EventReceiver".equals(typeName)) {
                     LinkedHashMap members = annotation.getAt("members")
-                    ArrayMemberValue obj = members.get("from").getAt("value")
+//                    StringMemberValue obj = members.get("tag").getAt("value")
                     IntegerMemberValue integerMemberValue = members.get("threadMode").getAt("value")
                     int mode = integerMemberValue.value
                     if (mode < 1 || mode > 4) {
@@ -210,21 +213,26 @@ class OkBusTransform extends Transform {
         helper.addInterface(helperSuper)
 
         //成员变量 目标类，也就是最终调用方法的类
-        CtField ctField = new CtField(ctClass, "target", helper)
+        CtField ctField = CtField.make( "public java.lang.ref.WeakReference target;", helper)
         helper.addField(ctField)
         //成员变量 存储方法能接受的参数类型
 
 
         //构造函数
-        CtConstructor constructor = CtNewConstructor.make("public " + getClazzName(ctClass.getName()) + " (" + ctClass.getName() + " target){this.target=target;}", helper)
+        CtConstructor constructor = CtNewConstructor.make("public " + getClazzName(ctClass.getName()) + " (" + ctClass.getName() +
+                " target){this.target = new java.lang.ref.WeakReference(target);}", helper)
         helper.addConstructor(constructor)
 
         //构造post方法 并进行事件分发
         StringBuffer postBody = new StringBuffer()
         postBody.append("public void post(java.lang.Object obj){")
+        postBody.append(ctClass.getName()+" to =("+ctClass.getName().toString()+")target.get();")
+        .append("if(to==null||to instanceof android.app.Activity&&((android.app.Activity)to).isFinishing()){\n" +
+                "            return;\n" +
+                "        }")
         for (CtMethod ctMethod : methodList) {
             postBody.append("if(obj.getClass().getName().equals(" + "\"" + ctMethod.getParameterTypes()[0].name + "\"" + ")){")
-            postBody.append("this.target." + ctMethod.name + "((" + ctMethod.getParameterTypes()[0].name.toString() + ")obj);}")
+            postBody.append("to." + ctMethod.name + "((" + ctMethod.getParameterTypes()[0].name.toString() + ")obj);}")
         }
 
         postBody.append("}")

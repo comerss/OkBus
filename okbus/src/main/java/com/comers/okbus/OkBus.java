@@ -22,22 +22,37 @@ public class OkBus {
     }
 
     public void post(Object text, Class... to) {
-
+        for (Class cla : to) {
+            objDeque.get(cla).post(text);
+        }
     }
 
     public void post(Object text, String... tag) {
-
+        Iterator it = this.objDeque.values().iterator();
+        while (it.hasNext()) {
+            AbstractHelper helper = (AbstractHelper) it.next();
+            helper.post(text,tag);
+        }
     }
-
-    public <T> T post(Class<T> tClass, Object text) {
+    public <T> T post(Object text, String tag) {
+        Iterator it = this.objDeque.values().iterator();
+        while (it.hasNext()) {
+            AbstractHelper helper = (AbstractHelper) it.next();
+//            helper.post(text,tag);
+        }
         return null;
     }
 
     public <T> T post(Class<T> tClass, Object text, Class to) {
-        return null;
+     return objDeque.get(to).post(tClass,text);
     }
 
     public <T> T post(Class<T> tClass, Object text, String tag) {
+        Iterator it = this.objDeque.values().iterator();
+        while (it.hasNext()) {
+            AbstractHelper helper = (AbstractHelper) it.next();
+//            return helper.post(text,tag);
+        }
         return null;
     }
 

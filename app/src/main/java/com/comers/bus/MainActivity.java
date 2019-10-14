@@ -1,5 +1,6 @@
 package com.comers.bus;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -33,11 +34,11 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    @EventReceiver(from = {MainActivity.class}, threadMode = Mode.MAIN)
+    @EventReceiver(tag ="MainActivity", threadMode = Mode.MAIN)
     public void dataChanged(Integer hahha) {
         txShowText.setText(hahha+"---->00000");
     }
-    @EventReceiver(from = {MainActivity.class}, threadMode = Mode.MAIN)
+    @EventReceiver( threadMode = Mode.MAIN)
     public void changed(String hahha) {
         txShowText.setText(hahha+"---->00000");
     }

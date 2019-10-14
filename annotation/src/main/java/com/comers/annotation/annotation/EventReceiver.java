@@ -11,6 +11,6 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 public @interface EventReceiver {
     int threadMode() default Mode.POST_THREAD;
-    Class[] from() default {};
-    String[] tags() default {};
+//    Class[] from() default {};
+    String tag() default "";
 }
