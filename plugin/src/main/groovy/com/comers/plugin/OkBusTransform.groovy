@@ -211,13 +211,11 @@ class OkBusTransform extends Transform {
         CtClass helper = pool.makeClass("com.comers.okbus." + getClazzName(ctClass.getName()) + "_Helper")
         CtClass helperSuper = pool.get("com.comers.okbus.AbstractHelper")
         helperSuper.defrost()
-        helper.addInterface(helperSuper)
+        helper.setSuperclass(helperSuper)
 
         //成员变量 目标类，也就是最终调用方法的类
-        CtField ctField = CtField.make( "public java.lang.ref.WeakReference target;", helper)
+        CtField ctField = CtField.make("java.lang.ref.WeakReference target;", helper)
         helper.addField(ctField)
-        //成员变量 存储方法能接受的参数类型
-
 
         //构造函数
         CtConstructor constructor = CtNewConstructor.make("public " + getClazzName(ctClass.getName()) + " (" + ctClass.getName() +
@@ -226,20 +224,56 @@ class OkBusTransform extends Transform {
 
         //构造post方法 并进行事件分发
         StringBuffer postBody = new StringBuffer()
-        postBody.append("public void post(java.lang.Object obj){")
-        postBody.append(ctClass.getName()+" to =("+ctClass.getName().toString()+")target.get();")
-        .append("if(to==null||to instanceof android.app.Activity&&((android.app.Activity)to).isFinishing()){\n" +
-                "            return;\n" +
-                "        }")
+        StringBuffer tagBody = new StringBuffer()
+        tagBody.append("public void initTag(){")
+        postBody.append("public void post( java.lang.Object obj){")
+        postBody.append("final "+ctClass.getName() + " to =(" + ctClass.getName().toString() + ")target.get();")
+                .append("if(to==null||to instanceof android.app.Activity&&((android.app.Activity)to).isFinishing()){\n" +
+                        "            return;\n" +
+                        "        }")
         for (CtMethod ctMethod : methodList) {
             postBody.append("if(obj.getClass().getName().equals(" + "\"" + ctMethod.getParameterTypes()[0].name + "\"" + ")){")
-            postBody.append("to." + ctMethod.name + "((" + ctMethod.getParameterTypes()[0].name.toString() + ")obj);}")
+            def annotations = ctMethod.getAnnotations()
+            for (Object ano : annotations) {
+                def annotation = ano.getAt("h").getAt("annotation")
+                LinkedHashMap map = annotation.getProperties()
+                String typeName = map.get("typeName")
+                if ("com.comers.annotation.annotation.EventReceiver".equals(typeName)) {
+                    LinkedHashMap members = annotation.getAt("members")
+                    if (members.get("tag") != null) {
+                        StringMemberValue obj = members.get("tag").getAt("value")
+                        tagBody.append("tags.add(\""+obj.value+ "\");")
+                    }
+                    IntegerMemberValue integerMemberValue = members.get("threadMode").getAt("value")
+
+                     if(integerMemberValue.value==1){
+                         postBody.append("final java.lang.Object param=obj;")
+                         postBody.append("handler.post(new Runnable() {\n" +
+                                 "                public void run() {\n" +
+                                 "to." + ctMethod.name + "((" + ctMethod.getParameterTypes()[0].name.toString() + ")param);" +
+                                 "                }\n" +
+                                 "            }); }")
+                     }else if(integerMemberValue.value==2||integerMemberValue.value==3){
+                         postBody.append("final java.lang.Object param=obj;")
+                         postBody.append("executors.submit(new Runnable() {\n" +
+                                 "                public void run() {\n" +
+                                 "to." + ctMethod.name + "((" + ctMethod.getParameterTypes()[0].name.toString() + ")param);" +
+                                 "                }\n" +
+                                 "            }); }")
+                     }else{
+                         postBody.append("to." + ctMethod.name + "((" + ctMethod.getParameterTypes()[0].name.toString() + ")obj);}")
+                     }
+                }
+            }
         }
 
         postBody.append("}")
+        tagBody.append("}")
         println(postBody.toString())
         CtMethod post = CtNewMethod.make(postBody.toString(), helper)
+        CtMethod tag = CtNewMethod.make(tagBody.toString(), helper)
         helper.addMethod(post)
+        helper.addMethod(tag)
         helper.writeFile(destDir)
         helper.defrost()
 

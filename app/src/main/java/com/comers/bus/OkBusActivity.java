@@ -28,7 +28,7 @@ public class OkBusActivity extends AppCompatActivity {
         });
     }
 
-    @EventReceiver(threadMode = Mode.MAIN)
+    @EventReceiver(threadMode = Mode.BACKGROUND)
     public void changed(String hahha) {
         txShowText.setText("我是来自 OKBusActivity 的数据");
     }

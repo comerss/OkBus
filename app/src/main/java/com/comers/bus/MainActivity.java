@@ -39,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
         txShowText.setText(hahha+"---->00000");
     }
 
-    @EventReceiver( threadMode = Mode.MAIN)
+    @EventReceiver( threadMode = Mode.BACKGROUND)
     public void changed(String hahha) {
         txShowText.setText(hahha+"---->00000");
     }

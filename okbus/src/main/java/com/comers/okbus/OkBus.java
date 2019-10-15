@@ -21,43 +21,39 @@ public class OkBus {
         }
     }
 
-    public void post(Object text, Class... to) {
+    public void post(Object event, Class... to) {
         for (Class cla : to) {
-            objDeque.get(cla).post(text);
+            AbstractHelper helper = objDeque.get(cla);
+            if (helper != null) {
+                helper.post(event);
+            }
         }
     }
 
-    public void post(Object text, String... tag) {
+    public void post(Object event, String... tag) {
         Iterator it = this.objDeque.values().iterator();
         while (it.hasNext()) {
             AbstractHelper helper = (AbstractHelper) it.next();
-            helper.post(text,tag);
+            for (String ta : tag) {
+                if (helper.tags.contains(ta)) {
+                    helper.post(event, tag);
+                }
+            }
         }
     }
-    public <T> T post(Object text, String tag) {
-        Iterator it = this.objDeque.values().iterator();
-        while (it.hasNext()) {
-            AbstractHelper helper = (AbstractHelper) it.next();
-//            helper.post(text,tag);
-        }
-        return null;
-    }
+
 
     public <T> T post(Class<T> tClass, Object text, Class to) {
-     return objDeque.get(to).post(tClass,text);
-    }
-
-    public <T> T post(Class<T> tClass, Object text, String tag) {
-        Iterator it = this.objDeque.values().iterator();
-        while (it.hasNext()) {
-            AbstractHelper helper = (AbstractHelper) it.next();
-//            return helper.post(text,tag);
+        AbstractHelper helper = objDeque.get(to);
+        if (helper != null) {
+            return helper.post(tClass, text);
         }
         return null;
     }
 
+
     public void register(Object target) {
-        if(objDeque.containsKey(target.getClass())){
+        if (objDeque.containsKey(target.getClass())) {
             return;
         }
     }
