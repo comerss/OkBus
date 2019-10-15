@@ -248,14 +248,14 @@ class OkBusTransform extends Transform {
 
                      if(integerMemberValue.value==1){
                          postBody.append("final java.lang.Object param=obj;")
-                         postBody.append("handler.post(new Runnable() {\n" +
+                         postBody.append("handler.post(new java.lang.Runnable() {\n" +
                                  "                public void run() {\n" +
                                  "to." + ctMethod.name + "((" + ctMethod.getParameterTypes()[0].name.toString() + ")param);" +
                                  "                }\n" +
                                  "            }); }")
                      }else if(integerMemberValue.value==2||integerMemberValue.value==3){
                          postBody.append("final java.lang.Object param=obj;")
-                         postBody.append("executors.submit(new Runnable() {\n" +
+                         postBody.append("executors.submit(new java.lang.Runnable() {\n" +
                                  "                public void run() {\n" +
                                  "to." + ctMethod.name + "((" + ctMethod.getParameterTypes()[0].name.toString() + ")param);" +
                                  "                }\n" +
