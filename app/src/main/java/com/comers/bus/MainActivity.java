@@ -22,9 +22,8 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        OkBus.INSTANCE.register(this);
+        OkBus.getDefault().register(this);
         txShowText = findViewById(R.id.txShowText);
-        OkBus.INSTANCE.post("hahahha",OkBusActivity.class);
         txShowText.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

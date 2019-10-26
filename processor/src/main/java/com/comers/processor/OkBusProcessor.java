@@ -7,10 +7,13 @@ import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeSpec;
 
+import org.omg.PortableServer.POA;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
+import java.util.EmptyStackException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -62,35 +65,80 @@ public class OkBusProcessor extends AbstractProcessor {
 
     @Override
     public boolean process(Set<? extends TypeElement> set, RoundEnvironment roundEnvironment) {
-        processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "要开始注解结识了啊");
-        //收集所有的注解的信息以及所在类的信息
-        collectSubscribers(set, roundEnvironment, processingEnv.getMessager());
-        //1. 需要生成一个保存所有需要修改类的文件，留给javassit 好知道需要修改哪些类
-        createFile();
-//        saveInfo();
-        return true;
+        if (set.size() > 0) {
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "要开始注解结识了啊");
+            //收集所有的注解的信息以及所在类的信息
+            collectSubscribers(set, roundEnvironment, processingEnv.getMessager());
+            //1. 需要生成一个保存所有需要修改类的文件，留给javassit 好知道需要修改哪些类
+            createFile();
+            //2. 创建对应的Helper类，本来是javassit创建方便些，但是由于javassit不能处理handler 无法解决只能前移到这里
+            createHelper();
+        }
+        return false;
     }
 
-    private void saveInfo() {
-        StringBuffer buffer = new StringBuffer();
-        Set<TypeElement> clazzs = methodsByClass.keySet();
+    int count = 0;
 
-        for (TypeElement element : clazzs) {
-            buffer.append( "\"" + element.getQualifiedName() + "\"");
+    private void createHelper() {
+        processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "--------" + count);
+        for (TypeElement element : methodsByClass.keySet()) {
+            processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "我是一个" + element.getSimpleName() + "_Helper" + count++);
+            //构造函数
+            TypeSpec.Builder helper = TypeSpec.classBuilder(element.getSimpleName() + "_Helper");
+            helper.superclass(ClassName.get("com.comers.okbus", "AbstractHelper"));
+            helper.addField(ClassName.get("java.lang.ref", "WeakReference"), "target", Modifier.PRIVATE);
+            helper.addMethod(MethodSpec.constructorBuilder()
+                    .addParameter(ClassName.get(getPackage(element.getQualifiedName().toString()), element.getSimpleName().toString()), "target")
+                    .addStatement("this.target=new $T(target)", ClassName.get("java.lang.ref", "WeakReference"))
+                    .build());
+
+
+            //post 事件分发函数
+            MethodSpec.Builder post = MethodSpec.methodBuilder("post")
+                    .addModifiers(Modifier.PUBLIC)
+                    .addParameter(ClassName.OBJECT, "obj");
+            post.addStatement("final $T to=(" + element.getSimpleName().toString() + ")target.get()",
+                    ClassName.get(getPackage(element.getQualifiedName().toString()), element.getSimpleName().toString()));
+            post.addStatement(" if (to == null || to instanceof android.app.Activity && ((android.app.Activity) to).isFinishing()) {\n" +
+                    "            return;" +
+                    "        }");
+            List<ExecutableElement> methods = methodsByClass.get(element);
+            StringBuffer body = new StringBuffer();
+            body.append("final Object param=obj;\n");
+            for (ExecutableElement method : methods) {
+                body.append("if(obj.getClass().getName().equals(\"" + method.getParameters().get(0).asType().toString() + "\")){");
+                EventReceiver receiver = method.getAnnotation(EventReceiver.class);
+                if (receiver != null) {
+                    if (receiver.threadMode() == 1) {
+                        body.append("handler.post(new Runnable() {\n" +
+                                "                @Override\n" +
+                                "                public void run() {\n" +
+                                "to." + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")param);" +
+                                "                }\n" +
+                                "            });");
+                    } else if (receiver.threadMode() == 2 || receiver.threadMode() == 3) {
+                        body.append("executors.submit(new Runnable() {\n" +
+                                "                @Override\n" +
+                                "                public void run() {\n" +
+                                "to." + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")param);" +
+                                "                }\n" +
+                                "            });");
+                    }
+                }
+                body.append("}");
+            }
+            post.addStatement(body.toString());
+            helper.addMethod(post.build());
+            JavaFile javaFile = JavaFile.builder(getPackage(element.getQualifiedName().toString()), helper.build()).build();
+
+            try {
+                javaFile.writeTo(filer);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
-
-        try { // write the file
-            JavaFileObject source = filer.createSourceFile("com.example.yore.myannotation.");
-            Writer writer = source.openWriter();
-            writer.write(buffer.toString());
-            writer.flush();
-            writer.close();
-        } catch (IOException e) {
-            // Note: calling e.printStackTrace() will print IO errors
-            // that occur from the file already existing after its first run, this is normal
-        }
-
     }
+
 
     private void collectSubscribers(Set<? extends TypeElement> annotations, RoundEnvironment env, Messager messager) {
         for (TypeElement annotation : annotations) {
@@ -164,5 +212,9 @@ public class OkBusProcessor extends AbstractProcessor {
             return false;
         }
         return true;
+    }
+
+    public String getPackage(String name) {
+        return name.substring(0, name.lastIndexOf("."));
     }
 }

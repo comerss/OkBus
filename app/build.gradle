@@ -1,6 +1,5 @@
 apply plugin: 'com.android.application'
 apply plugin: 'com.comers.plugin'
-//apply plugin: 'com.comers'
 
 android {
     compileSdkVersion 28
@@ -10,7 +9,7 @@ android {
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"
-//        multiDexEnabled true
+        multiDexEnabled true
     }
     buildTypes {
         release {

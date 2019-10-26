@@ -7,19 +7,10 @@ import com.android.build.api.transform.Transform
 import com.android.build.api.transform.TransformInvocation
 import com.android.build.gradle.internal.pipeline.TransformManager
 import javassist.*
-import javassist.bytecode.AnnotationsAttribute
-import javassist.bytecode.ClassFile
-import javassist.bytecode.ConstPool
-import javassist.bytecode.annotation.Annotation
-import javassist.bytecode.annotation.ArrayMemberValue
 import javassist.bytecode.annotation.IntegerMemberValue
 import javassist.bytecode.annotation.StringMemberValue
-import kotlin.reflect.jvm.internal.impl.builtins.KotlinBuiltIns
 import org.apache.commons.io.FileUtils
 import org.gradle.api.Project
-import org.gradle.internal.impldep.org.junit.Assert
-import org.omg.CORBA.ObjectHelper
-import sun.management.MethodInfo
 
 import javax.xml.crypto.dsig.TransformException
 
@@ -103,11 +94,16 @@ class OkBusTransform extends Transform {
                 CtClass absHelper = pool.get("com.comers.okbus.AbstractHelper")
                 absHelper.defrost()
                 absHelper.writeFile(destDir)
+                Loader cl = new Loader(pool)
+                if (EventReceiver == null) {
+                    EventReceiver = cl.loadClass("com.comers.annotation.annotation.EventReceiver")
+                }
                 //需要修改的文件的集合
                 def list = helper.getInfo()
                 for (String str : list) {
                     createNewFile(str)
                 }
+
                 def dest = transformInvocation.outputProvider.getContentLocation(
                         it.name,
                         it.contentTypes,
@@ -162,18 +158,10 @@ class OkBusTransform extends Transform {
 //        createNewFile(dir, name)
 
     }
+    Class EventReceiver
 
     private void createNewFile(String name) {
         CtClass ctClass = pool.get(name)
-        //TODO 这里需要定义CLassLoader 来寻找Receiver 的class  目前会报错
-        /* if (EventReceiver == null) {
-             EventReceiver = pool.get("com.comers.annotation.annotation.EventReceiver").toClass()
-         }
-
-         if (!ctClass.hasAnnotation(EventReceiver)) {
-             ctClass.detach()
-             return
-         }*/
         if (ctClass.isFrozen()) {
             ctClass.defrost()
         }
@@ -182,21 +170,16 @@ class OkBusTransform extends Transform {
         List<CtMethod> methodList = new ArrayList<>()
         //TODO 需要处理注解的时候把要处理的方法名字带过来，否则这里遍历很耗时间
         for (CtMethod method : methods) {
-            Object[] list = method.getAvailableAnnotations()
-            if (list.length > 0) {
-                def annotation = list[0].getAt("h").getAt("annotation")
-                LinkedHashMap map = annotation.getProperties()
-                String typeName = map.get("typeName")
-                if ("com.comers.annotation.annotation.EventReceiver".equals(typeName)) {
-                    LinkedHashMap members = annotation.getAt("members")
-//                    StringMemberValue obj = members.get("tag").getAt("value")
-                    IntegerMemberValue integerMemberValue = members.get("threadMode").getAt("value")
-                    int mode = integerMemberValue.value
-                    if (mode < 1 || mode > 4) {
-                        throw new IllegalArgumentException(ctClass.name + "  EventReceiver threadMode must be one of Mode， or between 1 and 4 ")
-                    }
-                    methodList.add(method)
+            def ano = method.getAnnotation(EventReceiver)
+            if (ano != null) {
+                def annotation = ano.getAt("h").getAt("annotation")
+                LinkedHashMap members = annotation.getAt("members")
+                IntegerMemberValue integerMemberValue = members.get("threadMode").getAt("value")
+                int mode = integerMemberValue.value
+                if (mode < 1 || mode > 4) {
+                    throw new IllegalArgumentException(ctClass.name + "  EventReceiver threadMode must be one of Mode， or between 1 and 4 ")
                 }
+                methodList.add(method)
             }
         }
 
@@ -207,6 +190,35 @@ class OkBusTransform extends Transform {
         }
 
 
+        // 修改OkBus 来处理对应的能能够调用的方法
+        //等遍历完所有的文件之后 我们需要修改 oKbus 来完成事件的真正分发 与 调用
+        CtClass okbus = pool.get("com.comers.okbus.OkBus")
+        if (okbus.isFrozen()) {
+            okbus.defrost()
+        }
+
+
+        //修改注册方法
+        CtMethod register = okbus.getDeclaredMethod("register")
+        StringBuffer buffer = new StringBuffer()
+        buffer.append("if(android.text.TextUtils.equals(target.getClass().getName().toString(),\"" + ctClass.getName() + "\")&&!objDeque.containsKey(target.getClass())){")
+        buffer.append("objDeque.put(target.getClass(),")
+        buffer.append("new " + ctClass.getName()+"_Helper" + "((" + ctClass.getName() + ")target)")
+        buffer.append(");")
+        buffer.append("}")
+        register.insertAfter(buffer.toString())
+        okbus.writeFile(destDir)
+
+    }
+
+
+    String getClazzName(String fileName) {
+        String name = fileName.substring(fileName.lastIndexOf(".") + 1, fileName.length())
+        return name
+    }
+
+
+    public void createHelper(CtClass ctClass){
         //生成对应的辅助文件 作为调用的桥梁
         CtClass helper = pool.makeClass("com.comers.okbus." + getClazzName(ctClass.getName()) + "_Helper")
         CtClass helperSuper = pool.get("com.comers.okbus.AbstractHelper")
@@ -227,43 +239,37 @@ class OkBusTransform extends Transform {
         StringBuffer tagBody = new StringBuffer()
         tagBody.append("public void initTag(){")
         postBody.append("public void post( java.lang.Object obj){")
-        postBody.append("final "+ctClass.getName() + " to =(" + ctClass.getName().toString() + ")target.get();")
+        postBody.append("final " + ctClass.getName() + " to =(" + ctClass.getName().toString() + ")target.get();")
                 .append("if(to==null||to instanceof android.app.Activity&&((android.app.Activity)to).isFinishing()){\n" +
                         "            return;\n" +
                         "        }")
         for (CtMethod ctMethod : methodList) {
             postBody.append("if(obj.getClass().getName().equals(" + "\"" + ctMethod.getParameterTypes()[0].name + "\"" + ")){")
-            def annotations = ctMethod.getAnnotations()
-            for (Object ano : annotations) {
-                def annotation = ano.getAt("h").getAt("annotation")
-                LinkedHashMap map = annotation.getProperties()
-                String typeName = map.get("typeName")
-                if ("com.comers.annotation.annotation.EventReceiver".equals(typeName)) {
-                    LinkedHashMap members = annotation.getAt("members")
-                    if (members.get("tag") != null) {
-                        StringMemberValue obj = members.get("tag").getAt("value")
-                        tagBody.append("tags.add(\""+obj.value+ "\");")
-                    }
-                    IntegerMemberValue integerMemberValue = members.get("threadMode").getAt("value")
+            def annotations = ctMethod.getAnnotation(EventReceiver)
+            def annotation = annotations.getAt("h").getAt("annotation")
+            LinkedHashMap members = annotation.getAt("members")
+            if (members.get("tag") != null) {
+                StringMemberValue obj = members.get("tag").getAt("value")
+                tagBody.append("tags.add(\"" + obj.value + "\");")
+            }
+            IntegerMemberValue integerMemberValue = members.get("threadMode").getAt("value")
 
-                     if(integerMemberValue.value==1){
-                         postBody.append("final java.lang.Object param=obj;")
-                         postBody.append("handler.post(new java.lang.Runnable() {\n" +
-                                 "                public void run() {\n" +
-                                 "to." + ctMethod.name + "((" + ctMethod.getParameterTypes()[0].name.toString() + ")param);" +
-                                 "                }\n" +
-                                 "            }); }")
-                     }else if(integerMemberValue.value==2||integerMemberValue.value==3){
-                         postBody.append("final java.lang.Object param=obj;")
-                         postBody.append("executors.submit(new java.lang.Runnable() {\n" +
-                                 "                public void run() {\n" +
-                                 "to." + ctMethod.name + "((" + ctMethod.getParameterTypes()[0].name.toString() + ")param);" +
-                                 "                }\n" +
-                                 "            }); }")
-                     }else{
-                         postBody.append("to." + ctMethod.name + "((" + ctMethod.getParameterTypes()[0].name.toString() + ")obj);}")
-                     }
-                }
+            if (integerMemberValue.value == 1) {
+                postBody.append("final java.lang.Object param=obj;")
+                postBody.append("handler.post(new java.lang.Runnable() {\n" +
+                        "                public void run() {\n" +
+                        "to." + ctMethod.name + "((" + ctMethod.getParameterTypes()[0].name.toString() + ")param);" +
+                        "                }\n" +
+                        "            }); }")
+            } else if (integerMemberValue.value == 2 || integerMemberValue.value == 3) {
+                postBody.append("final java.lang.Object param=obj;")
+                postBody.append("executors.submit(new java.lang.Runnable() {\n" +
+                        "                public void run() {\n" +
+                        "to." + ctMethod.name + "((" + ctMethod.getParameterTypes()[0].name.toString() + ")param);" +
+                        "                }\n" +
+                        "            }); }")
+            } else {
+                postBody.append("to." + ctMethod.name + "((" + ctMethod.getParameterTypes()[0].name.toString() + ")obj);}")
             }
         }
 
@@ -276,55 +282,6 @@ class OkBusTransform extends Transform {
         helper.addMethod(tag)
         helper.writeFile(destDir)
         helper.defrost()
-
-        // 修改OkBus 来处理对应的能能够调用的方法
-        //等遍历完所有的文件之后 我们需要修改 oKbus 来完成事件的真正分发 与 调用
-        CtClass okbus = pool.get("com.comers.okbus.OkBus")
-        if (okbus.isFrozen()) {
-            okbus.defrost()
-        }
-
-
-        //修改注册方法
-        CtMethod register = okbus.getDeclaredMethod("register")
-        StringBuffer buffer = new StringBuffer()
-        buffer.append("if(android.text.TextUtils.equals(target.getClass().getName().toString(),\"" + ctClass.getName() + "\")&&!objDeque.containsKey(target.getClass())){")
-        buffer.append("objDeque.put(target.getClass(),")
-        buffer.append("new " + helper.getName().toString() + "((" + ctClass.getName() + ")target)")
-        buffer.append(");")
-        buffer.append("}")
-        register.insertAfter(buffer.toString())
-        okbus.writeFile(destDir)
-
     }
-
-
-    String getClazzName(String fileName) {
-        String name = fileName.substring(fileName.lastIndexOf(".") + 1, fileName.length())
-        return name
-    }
-
-    /*private static ClassLoader getLocaleClassLoader() throws Exception {
-        List<URL> classPathURLs = new ArrayList<>();
-        // 加载.class文件路径
-        classPathURLs.add(classesPath.toURI().toURL());
-
-        // 获取所有的jar文件
-        File[] jarFiles = libPath.listFiles(new FilenameFilter() {
-            @Override
-            public boolean accept(File dir, String name) {
-                return name.endsWith(".jar");
-            }
-        });
-        Assert.assertFalse(ObjectHelper.isArrayNullOrEmpty(jarFiles));
-
-        // 将jar文件路径写入集合
-        for (File jarFile : jarFiles) {
-            classPathURLs.add(jarFile.toURI().toURL());
-        }
-
-        // 实例化类加载器
-        return new URLClassLoader(classPathURLs.toArray(new URL[classPathURLs.size()]));
-    }*/
 
 }

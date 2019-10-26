@@ -3,15 +3,18 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
+    android:orientation="vertical"
     android:layout_height="match_parent"
     tools:context="com.comers.bus.MainActivity">
 
     <TextView
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:id="@+id/txShowText"
         android:gravity="center"
-        android:text="Hello World!"
-        />
+        android:text="Hello World!" />
 
+    <com.comers.bus.TableView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 </LinearLayout>

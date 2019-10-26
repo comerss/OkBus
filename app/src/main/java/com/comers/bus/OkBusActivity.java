@@ -19,11 +19,11 @@ public class OkBusActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         txShowText = findViewById(R.id.txShowText);
-        OkBus.INSTANCE.register(this);
+        OkBus.getDefault().register(this);
         findViewById(R.id.txShowText).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                OkBus.INSTANCE.post("我是来自 OKBusActivity 的数据");
+                OkBus.getDefault().post("我是来自 OKBusActivity 的数据");
             }
         });
     }
@@ -36,6 +36,6 @@ public class OkBusActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        OkBus.INSTANCE.unregister(this);
+        OkBus.getDefault().unregister(this);
     }
 }

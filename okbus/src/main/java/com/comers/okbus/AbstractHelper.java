@@ -14,7 +14,7 @@ public class AbstractHelper {
     public ExecutorService executors = Executors.newFixedThreadPool(5);
     public ActionHandler handler = new ActionHandler();
 
-    public void post(final Object obj) {
+    public void post( Object obj) {
 
     }
 

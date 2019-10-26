@@ -6,12 +6,18 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class OkBus {
-    public static OkBus INSTANCE = new OkBus();
+    static OkBus INSTANCE;
     private LinkedHashMap<Class, ? extends AbstractHelper> objDeque = new LinkedHashMap<>();
 
     private OkBus() {
     }
 
+    public static OkBus getDefault() {
+        if(INSTANCE==null){
+            INSTANCE=new OkBus();
+        }
+        return INSTANCE;
+    }
 
     public void post(Object obj) {
         Iterator it = this.objDeque.values().iterator();
