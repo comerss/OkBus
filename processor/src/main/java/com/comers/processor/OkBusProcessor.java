@@ -85,11 +85,13 @@ public class OkBusProcessor extends AbstractProcessor {
             processingEnv.getMessager().printMessage(Diagnostic.Kind.NOTE, "我是一个" + element.getSimpleName() + "_Helper" + count++);
             //构造函数
             TypeSpec.Builder helper = TypeSpec.classBuilder(element.getSimpleName() + "_Helper");
+            helper.addModifiers(Modifier.PUBLIC);
             helper.superclass(ClassName.get("com.comers.okbus", "AbstractHelper"));
             helper.addField(ClassName.get("java.lang.ref", "WeakReference"), "target", Modifier.PRIVATE);
             helper.addMethod(MethodSpec.constructorBuilder()
                     .addParameter(ClassName.get(getPackage(element.getQualifiedName().toString()), element.getSimpleName().toString()), "target")
                     .addStatement("this.target=new $T(target)", ClassName.get("java.lang.ref", "WeakReference"))
+                    .addModifiers(Modifier.PUBLIC)
                     .build());
 
 
@@ -110,14 +112,14 @@ public class OkBusProcessor extends AbstractProcessor {
                 EventReceiver receiver = method.getAnnotation(EventReceiver.class);
                 if (receiver != null) {
                     if (receiver.threadMode() == 1) {
-                        body.append("handler.post(new Runnable() {\n" +
+                        body.append("com.comers.okbus.OkBus.getDefault().getHandler().post(new Runnable() {\n" +
                                 "                @Override\n" +
                                 "                public void run() {\n" +
                                 "to." + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")param);" +
                                 "                }\n" +
                                 "            });");
                     } else if (receiver.threadMode() == 2 || receiver.threadMode() == 3) {
-                        body.append("executors.submit(new Runnable() {\n" +
+                        body.append("com.comers.okbus.OkBus.getDefault().getExecutor().submit(new Runnable() {\n" +
                                 "                @Override\n" +
                                 "                public void run() {\n" +
                                 "to." + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")param);" +

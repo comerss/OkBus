@@ -1,9 +1,15 @@
 package com.comers.okbus;
 
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
+
 import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class OkBus {
     static OkBus INSTANCE;
@@ -13,8 +19,8 @@ public class OkBus {
     }
 
     public static OkBus getDefault() {
-        if(INSTANCE==null){
-            INSTANCE=new OkBus();
+        if (INSTANCE == null) {
+            INSTANCE = new OkBus();
         }
         return INSTANCE;
     }
@@ -66,5 +72,16 @@ public class OkBus {
 
     public void unregister(Object target) {
         objDeque.remove(target.getClass());
+    }
+
+    ExecutorService executors = Executors.newFixedThreadPool(5);
+    Handler handler = new Handler();
+
+    public Handler getHandler() {
+        return handler;
+    }
+
+    public ExecutorService getExecutor() {
+        return executors;
     }
 }
