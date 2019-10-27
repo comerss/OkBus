@@ -119,7 +119,7 @@ public class OkBusProcessor extends AbstractProcessor {
                                 "                }\n" +
                                 "            });");
                     } else if (receiver.threadMode() == 2 || receiver.threadMode() == 3) {
-                        body.append("com.comers.okbus.OkBus.getDefault().getExecutor().submit(new Runnable() {\n" +
+                        body.append("com.comers.okbus.OkBus.getDefault().getExecutors().submit(new Runnable() {\n" +
                                 "                @Override\n" +
                                 "                public void run() {\n" +
                                 "to." + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")param);" +

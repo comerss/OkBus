@@ -71,7 +71,9 @@ public class OkBus {
     }
 
     public void unregister(Object target) {
-        objDeque.remove(target.getClass());
+        if (objDeque.containsKey(target.getClass())) {
+            objDeque.remove(target.getClass());
+        }
     }
 
     ExecutorService executors = Executors.newFixedThreadPool(5);
@@ -81,7 +83,7 @@ public class OkBus {
         return handler;
     }
 
-    public ExecutorService getExecutor() {
+    public ExecutorService getExecutors() {
         return executors;
     }
 }
