@@ -43,4 +43,9 @@ public class MainActivity extends AppCompatActivity {
         txShowText.setText(hahha+"---->00000");
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        OkBus.getDefault().unregister(this);
+    }
 }
