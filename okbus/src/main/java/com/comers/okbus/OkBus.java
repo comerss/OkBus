@@ -1,5 +1,6 @@
 package com.comers.okbus;
 
+import android.drm.DrmStore;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -77,7 +78,7 @@ public class OkBus {
     }
 
     ExecutorService executors = Executors.newFixedThreadPool(5);
-    Handler handler = new Handler();
+    Handler handler = new ActionHandler();
 
     public Handler getHandler() {
         return handler;
@@ -86,4 +87,16 @@ public class OkBus {
     public ExecutorService getExecutors() {
         return executors;
     }
+
+    static class ActionHandler extends Handler {
+        public ActionHandler() {
+            super(Looper.getMainLooper());
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            super.handleMessage(msg);
+        }
+    }
+
 }

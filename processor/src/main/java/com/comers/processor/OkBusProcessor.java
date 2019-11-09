@@ -91,6 +91,7 @@ public class OkBusProcessor extends AbstractProcessor {
             helper.addMethod(MethodSpec.constructorBuilder()
                     .addParameter(ClassName.get(getPackage(element.getQualifiedName().toString()), element.getSimpleName().toString()), "target")
                     .addStatement("this.target=new $T(target)", ClassName.get("java.lang.ref", "WeakReference"))
+                    .addStatement("initTag()")
                     .addModifiers(Modifier.PUBLIC)
                     .build());
 
@@ -104,6 +105,10 @@ public class OkBusProcessor extends AbstractProcessor {
             post.addStatement(" if (to == null || to instanceof android.app.Activity && ((android.app.Activity) to).isFinishing()) {\n" +
                     "            return;" +
                     "        }");
+
+            //tag初始化
+            MethodSpec.Builder initTag = MethodSpec.methodBuilder("initTag");
+
             List<ExecutableElement> methods = methodsByClass.get(element);
             StringBuffer body = new StringBuffer();
             body.append("final Object param=obj;\n");
@@ -128,9 +133,14 @@ public class OkBusProcessor extends AbstractProcessor {
                     }
                 }
                 body.append("}");
+
+                if (receiver.tag() != null && !receiver.tag().isEmpty()) {
+                    initTag.addStatement("tags.add(\""+receiver.tag()+"\")");
+                }
             }
             post.addStatement(body.toString());
             helper.addMethod(post.build());
+            helper.addMethod(initTag.build());
             JavaFile javaFile = JavaFile.builder(getPackage(element.getQualifiedName().toString()), helper.build()).build();
 
             try {

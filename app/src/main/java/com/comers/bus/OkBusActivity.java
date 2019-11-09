@@ -24,11 +24,12 @@ public class OkBusActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 OkBus.getDefault().post("我是来自 OKBusActivity 的数据");
+                OkBus.getDefault().post(11);
             }
         });
     }
 
-    @EventReceiver(threadMode = Mode.BACKGROUND)
+    @EventReceiver(threadMode = Mode.BACKGROUND,tag = "OkActivity")
     public void changed(String hahha) {
         txShowText.setText("我是来自 OKBusActivity 的数据");
     }
