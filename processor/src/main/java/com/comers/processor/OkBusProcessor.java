@@ -5,6 +5,7 @@ import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
+import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
 import org.omg.PortableServer.POA;
@@ -113,8 +114,11 @@ public class OkBusProcessor extends AbstractProcessor {
             StringBuffer body = new StringBuffer();
             body.append("final Object param=obj;\n");
             for (ExecutableElement method : methods) {
-                body.append("if(obj.getClass().getName().equals(\"" + method.getParameters().get(0).asType().toString() + "\")){");
                 EventReceiver receiver = method.getAnnotation(EventReceiver.class);
+                TypeName typeName = ClassName.get(method.getParameters().get(0).asType());
+                body.append("if(obj.getClass().equals(" + method.getParameters().get(0).asType().toString() + ".class)){");
+
+
                 if (receiver != null) {
                     if (receiver.threadMode() == 1) {
                         body.append("com.comers.okbus.OkBus.getDefault().getHandler().post(new Runnable() {\n" +
