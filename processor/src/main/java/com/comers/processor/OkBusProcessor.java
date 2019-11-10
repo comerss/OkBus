@@ -101,7 +101,9 @@ public class OkBusProcessor extends AbstractProcessor {
             //post 事件分发函数
             MethodSpec.Builder post = MethodSpec.methodBuilder("post")
                     .addModifiers(Modifier.PUBLIC)
-                    .addParameter(ClassName.OBJECT, "obj");
+                    .addParameter(ClassName.OBJECT, "obj")
+                    .addParameter(String.class,"tag")
+                    ;
             post.addStatement("if(checkNull(target)){\n" +
                     "            return;\n" +
                     "        }");
@@ -183,13 +185,13 @@ public class OkBusProcessor extends AbstractProcessor {
                 if (name.contains("<") && name.contains(">")) {
                     String posName = "pos" + i;
                     buffer.append("   com.comers.okbus.PostData<" + name + "> " + posName + "=new com.comers.okbus.PostData<" + name + ">(){};\n");
-                    buffer.append(containsFans ? "else" : "" + "  if (com.comers.okbus.ClassTypeHelper.equals(((com.comers.okbus.PostData) obj).getType(), " + posName + ".getType())) {\n");
+                    buffer.append(containsFans ? "else" : "" + "  if (com.comers.okbus.ClassTypeHelper.equals(((com.comers.okbus.PostData) obj).getType(), " + posName + ".getType())&&checkTag(tag,\""+receiver.tag()+"\")) {\n");
                     containsFans = true;
                     buffer.append("  " + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")((com.comers.okbus.PostData) obj).data);");
                     buffer.append("}\n");
                 } else {
                     containsNormal = true;
-                    body.append(prefix + " if(obj.getClass().equals(" + method.getParameters().get(0).asType().toString() + ".class)){\n");
+                    body.append(prefix + " if(obj.getClass().equals(" + method.getParameters().get(0).asType().toString() + ".class)&&checkTag(tag,\""+receiver.tag()+"\")){\n");
                     body.append("  " + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")obj);");
                     body.append("}\n");
                 }
