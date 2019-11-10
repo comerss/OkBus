@@ -39,7 +39,7 @@ public class OkBusActivity extends AppCompatActivity {
         });
     }
 
-    @EventReceiver(threadMode = Mode.MAIN, tag = "OkActivity")
+    @EventReceiver(threadMode = Mode.POST_THREAD, tag = "OkActivity")
     public void changed(OkData<Success> hahha) {
         txShowText.setText(hahha.data.show);
     }

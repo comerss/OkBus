@@ -127,12 +127,11 @@ public class OkBusProcessor extends AbstractProcessor {
 
                 //先对每个方法生成对应的调用方法
                 MethodSpec.Builder mBuild = MethodSpec.methodBuilder(method.getSimpleName().toString())
-                        .addParameter(ClassName.OBJECT, "obj");
+                        .addParameter(ClassName.get(method.getParameters().get(0).asType()), "obj");
                 StringBuffer mBody = new StringBuffer();
-                mBuild.addStatement("final Object param=obj");
-                mBuild.addStatement("if(checkNull(target)){\n" +
+                mBody.append("if(checkNull(target)){\n" +
                         "            return;\n" +
-                        "        }");
+                        "        }\n");
                 mBuild.addStatement("final " + element.getQualifiedName().toString() + " to=(" + element.getSimpleName().toString() + ")target.get()");
 
                 if (name.contains("<") && name.contains(">")) {
@@ -141,16 +140,18 @@ public class OkBusProcessor extends AbstractProcessor {
                             mBody.append("  com.comers.okbus.OkBus.getDefault().getHandler().post(new Runnable() {\n" +
                                     "                @Override\n" +
                                     "                public void run() {\n" +
-                                    "              to." + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")((com.comers.okbus.PostData) param).data);" +
+                                    "              to." + method.getSimpleName() + "(obj);" +
                                     "                }\n" +
                                     "            });");
                         } else if (receiver.threadMode() == 2 || receiver.threadMode() == 3) {
                             mBody.append("  com.comers.okbus.OkBus.getDefault().getExecutors().submit(new Runnable() {\n" +
                                     "                @Override\n" +
                                     "                public void run() {\n" +
-                                    "               to." + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")((com.comers.okbus.PostData) param).data);" +
+                                    "               to." + method.getSimpleName() + "(obj);" +
                                     "                }\n" +
                                     "            });");
+                        } else {
+                            mBody.append("to." + method.getSimpleName() + "(obj);");
                         }
                     }
                 } else {
@@ -159,16 +160,18 @@ public class OkBusProcessor extends AbstractProcessor {
                             mBody.append("  com.comers.okbus.OkBus.getDefault().getHandler().post(new Runnable() {\n" +
                                     "                @Override\n" +
                                     "                public void run() {\n" +
-                                    "                  to." + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")param);" +
+                                    "                  to." + method.getSimpleName() + "(obj);" +
                                     "                }\n" +
                                     "            });");
                         } else if (receiver.threadMode() == 2 || receiver.threadMode() == 3) {
                             mBody.append("com.comers.okbus.OkBus.getDefault().getExecutors().submit(new Runnable() {\n" +
                                     "                @Override\n" +
                                     "                public void run() {\n" +
-                                    "                 to." + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")param);" +
+                                    "                 to." + method.getSimpleName() + "(obj);" +
                                     "                }\n" +
                                     "            });");
+                        } else {
+                            mBody.append("to." + method.getSimpleName() + "(obj);");
                         }
                     }
                 }
@@ -182,24 +185,12 @@ public class OkBusProcessor extends AbstractProcessor {
                     buffer.append("   com.comers.okbus.PostData<" + name + "> " + posName + "=new com.comers.okbus.PostData<" + name + ">(){};\n");
                     buffer.append(containsFans ? "else" : "" + "  if (com.comers.okbus.ClassTypeHelper.equals(((com.comers.okbus.PostData) obj).getType(), " + posName + ".getType())) {\n");
                     containsFans = true;
-                    if (receiver != null) {
-                        if (receiver.threadMode() == 1) {
-                            buffer.append(method.getSimpleName() + "(obj);");
-                        } else if (receiver.threadMode() == 2 || receiver.threadMode() == 3) {
-                            buffer.append(method.getSimpleName() + "(obj);");
-                        }
-                    }
+                    buffer.append("  " + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")((com.comers.okbus.PostData) obj).data);");
                     buffer.append("}\n");
                 } else {
                     containsNormal = true;
                     body.append(prefix + " if(obj.getClass().equals(" + method.getParameters().get(0).asType().toString() + ".class)){\n");
-                    if (receiver != null) {
-                        if (receiver.threadMode() == 1) {
-                            body.append(method.getSimpleName() + "(obj);");
-                        } else if (receiver.threadMode() == 2 || receiver.threadMode() == 3) {
-                            body.append(method.getSimpleName() + "(obj);");
-                        }
-                    }
+                    body.append("  " + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")obj);");
                     body.append("}\n");
                 }
 
