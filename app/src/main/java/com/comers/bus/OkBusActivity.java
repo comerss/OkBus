@@ -8,7 +8,13 @@ import android.widget.TextView;
 
 import com.comers.annotation.annotation.EventReceiver;
 import com.comers.annotation.mode.Mode;
+import com.comers.okbus.ClassTypeHelper;
 import com.comers.okbus.OkBus;
+import com.comers.okbus.PostData;
+
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.List;
 
 public class OkBusActivity extends AppCompatActivity {
 
@@ -25,13 +31,17 @@ public class OkBusActivity extends AppCompatActivity {
             public void onClick(View v) {
                 OkBus.getDefault().post("我是来自 OKBusActivity 的数据");
                 OkBus.getDefault().post(11);
+                OkData<Success> data = new OkData<>();
+                data.data = new Success("我的数据来自泛型");
+                OkBus.getDefault().post(new PostData<OkData<Success>>(data) {
+                });
             }
         });
     }
 
-    @EventReceiver(threadMode = Mode.BACKGROUND,tag = "OkActivity")
-    public void changed(String hahha) {
-        txShowText.setText("我是来自 OKBusActivity 的数据");
+    @EventReceiver(threadMode = Mode.MAIN, tag = "OkActivity")
+    public void changed(OkData<Success> hahha) {
+        txShowText.setText(hahha.data.show);
     }
 
     @Override

@@ -4,8 +4,10 @@ import android.app.Activity;
 
 import com.comers.okbus.AbstractHelper;
 import com.comers.okbus.OkBus;
+import com.comers.okbus.PostData;
 
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Type;
 import java.util.LinkedHashMap;
 
 public class MainActivity_Helpers extends AbstractHelper {
@@ -39,6 +41,9 @@ public class MainActivity_Helpers extends AbstractHelper {
         final OkBusActivity to = (com.comers.bus.OkBusActivity) target.get();
         if (to == null || to instanceof android.app.Activity && ((android.app.Activity) to).isFinishing()) {
             return;
+        }
+        if(obj instanceof PostData){
+
         }
         if (obj.getClass().getName().equals("java.lang.String")) {
             final java.lang.Object param = obj;

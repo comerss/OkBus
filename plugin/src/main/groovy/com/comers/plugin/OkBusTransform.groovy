@@ -94,6 +94,22 @@ class OkBusTransform extends Transform {
                 CtClass absHelper = pool.get("com.comers.okbus.AbstractHelper")
                 absHelper.defrost()
                 absHelper.writeFile(destDir)
+
+                CtClass ClassTypeHelper = pool.get("com.comers.okbus.ClassTypeHelper")
+                ClassTypeHelper.defrost()
+                ClassTypeHelper.writeFile(destDir)
+
+                CtClass postCard = pool.get("com.comers.okbus.PostCard")
+                postCard.defrost()
+                postCard.writeFile(destDir)
+
+                CtClass ParameterizedTypeImpl = pool.get("com.comers.okbus.ParameterizedTypeImpl")
+                ParameterizedTypeImpl.defrost()
+                ParameterizedTypeImpl.writeFile(destDir)
+
+                CtClass PostData = pool.get("com.comers.okbus.PostData")
+                PostData.defrost()
+                PostData.writeFile(destDir)
                 Loader cl = new Loader(pool)
                 if (EventReceiver == null) {
                     EventReceiver = cl.loadClass("com.comers.annotation.annotation.EventReceiver")
@@ -203,7 +219,7 @@ class OkBusTransform extends Transform {
         StringBuffer buffer = new StringBuffer()
         buffer.append("if(android.text.TextUtils.equals(target.getClass().getName().toString(),\"" + ctClass.getName() + "\")&&!objDeque.containsKey(target.getClass())){")
         buffer.append("objDeque.put(target.getClass(),")
-        buffer.append("new " + ctClass.getName()+"_Helper" + "((" + ctClass.getName() + ")target)")
+        buffer.append("new " + ctClass.getName() + "_Helper" + "((" + ctClass.getName() + ")target)")
         buffer.append(");")
         buffer.append("}")
         register.insertAfter(buffer.toString())
@@ -218,7 +234,7 @@ class OkBusTransform extends Transform {
     }
 
 
-    public void createHelper(CtClass ctClass){
+    public void createHelper(CtClass ctClass) {
         //生成对应的辅助文件 作为调用的桥梁
         CtClass helper = pool.makeClass("com.comers.okbus." + getClazzName(ctClass.getName()) + "_Helper")
         CtClass helperSuper = pool.get("com.comers.okbus.AbstractHelper")

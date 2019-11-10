@@ -12,11 +12,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class AbstractHelper {
     public ArrayList tags = new ArrayList();
 
-    public void post( Object obj) {
+    public <T> void post(T obj) {
 
     }
 
-    public void post(Object text, String... tag) {
+    public <T> void post(T text, String tag) {
     }
 
     public <T> T post(Class<T> tClass, Object text) {

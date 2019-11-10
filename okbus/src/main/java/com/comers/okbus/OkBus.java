@@ -26,7 +26,7 @@ public class OkBus {
         return INSTANCE;
     }
 
-    public void post(Object obj) {
+    public <T> void post(T obj) {
         Iterator it = this.objDeque.values().iterator();
         while (it.hasNext()) {
             AbstractHelper helper = (AbstractHelper) it.next();
@@ -34,7 +34,7 @@ public class OkBus {
         }
     }
 
-    public void post(Object event, Class... to) {
+    public <T> void post(T event, Class... to) {
         for (Class cla : to) {
             AbstractHelper helper = objDeque.get(cla);
             if (helper != null) {
@@ -43,13 +43,13 @@ public class OkBus {
         }
     }
 
-    public void post(Object event, String... tag) {
+    public <T> void post(T event, String... tag) {
         Iterator it = this.objDeque.values().iterator();
         while (it.hasNext()) {
             AbstractHelper helper = (AbstractHelper) it.next();
             for (String ta : tag) {
                 if (helper.tags.contains(ta)) {
-                    helper.post(event, tag);
+                    helper.post(event, ta);
                 }
             }
         }
@@ -62,6 +62,14 @@ public class OkBus {
             return helper.post(tClass, text);
         }
         return null;
+    }
+
+    public <T> void post(Class<T> tClass, Object text) {
+        Iterator it = this.objDeque.values().iterator();
+        while (it.hasNext()) {
+            AbstractHelper helper = (AbstractHelper) it.next();
+            helper.post(tClass, text);
+        }
     }
 
 
@@ -78,7 +86,7 @@ public class OkBus {
     }
 
     ExecutorService executors = Executors.newFixedThreadPool(5);
-    Handler handler = new ActionHandler();
+    Handler handler = new Handler(Looper.getMainLooper());
 
     public Handler getHandler() {
         return handler;
@@ -86,17 +94,6 @@ public class OkBus {
 
     public ExecutorService getExecutors() {
         return executors;
-    }
-
-    static class ActionHandler extends Handler {
-        public ActionHandler() {
-            super(Looper.getMainLooper());
-        }
-
-        @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-        }
     }
 
 }

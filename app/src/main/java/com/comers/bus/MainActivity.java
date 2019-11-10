@@ -12,8 +12,6 @@ import com.comers.annotation.annotation.EventReceiver;
 import com.comers.annotation.mode.Mode;
 import com.comers.okbus.OkBus;
 
-import java.util.List;
-
 public class MainActivity extends AppCompatActivity {
 
     private TextView txShowText;
@@ -27,20 +25,20 @@ public class MainActivity extends AppCompatActivity {
         txShowText.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent=new Intent(MainActivity.this,OkBusActivity.class);
+                Intent intent = new Intent(MainActivity.this, OkBusActivity.class);
                 startActivity(intent);
             }
         });
     }
 
-    @EventReceiver(tag ="MainActivity", threadMode = Mode.MAIN)
+    @EventReceiver(tag = "MainActivity", threadMode = Mode.MAIN)
     public void dataChanged(Integer hahha) {
-        txShowText.setText(hahha+"---->00000");
+        txShowText.setText(hahha + "---->00000");
     }
 
-    @EventReceiver( threadMode = Mode.BACKGROUND)
+    @EventReceiver(threadMode = Mode.BACKGROUND)
     public void changed(String hahha) {
-        txShowText.setText(hahha+"---->00000");
+        txShowText.setText(hahha + "---->00000");
     }
 
     @Override

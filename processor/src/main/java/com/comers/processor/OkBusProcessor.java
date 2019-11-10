@@ -13,6 +13,7 @@ import org.omg.PortableServer.POA;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.EmptyStackException;
 import java.util.HashSet;
@@ -105,46 +106,103 @@ public class OkBusProcessor extends AbstractProcessor {
                     ClassName.get(getPackage(element.getQualifiedName().toString()), element.getSimpleName().toString()));
             post.addStatement(" if (to == null || to instanceof android.app.Activity && ((android.app.Activity) to).isFinishing()) {\n" +
                     "            return;" +
-                    "        }");
+                    "        }\n");
+
+            //post 事件分发函数 返回值
+            MethodSpec.Builder postReturn = MethodSpec.methodBuilder("post")
+                    .addModifiers(Modifier.PUBLIC)
+                    .addParameter(Class.class, "tClass")
+                    .addParameter(ClassName.OBJECT, "obj");
+            postReturn.addStatement("final $T to=(" + element.getSimpleName().toString() + ")target.get()",
+                    ClassName.get(getPackage(element.getQualifiedName().toString()), element.getSimpleName().toString()));
+            postReturn.addStatement(" if (to == null || to instanceof android.app.Activity && ((android.app.Activity) to).isFinishing()) {\n" +
+                    "            return null;" +
+                    "        }\n");
+
 
             //tag初始化
             MethodSpec.Builder initTag = MethodSpec.methodBuilder("initTag");
 
             List<ExecutableElement> methods = methodsByClass.get(element);
             StringBuffer body = new StringBuffer();
-            body.append("final Object param=obj;\n");
-            for (ExecutableElement method : methods) {
+            StringBuffer bodyReturn = new StringBuffer();
+            StringBuffer buffer = new StringBuffer();
+            buffer.append("final Object param=obj;\n");
+            bodyReturn.append("final Object param=obj;\n");
+            boolean containsFans = false;
+            boolean containsNormal = false;
+            buffer.append("if(obj instanceof com.comers.okbus.PostData){\n");
+            for (int i = 0; i < methods.size(); i++) {
+                ExecutableElement method = methods.get(i);
+                String prefix = "";
+                if (i != 0) {
+                    prefix = "else ";
+                }
                 EventReceiver receiver = method.getAnnotation(EventReceiver.class);
                 TypeName typeName = ClassName.get(method.getParameters().get(0).asType());
-                body.append("if(obj.getClass().equals(" + method.getParameters().get(0).asType().toString() + ".class)){");
-
-
-                if (receiver != null) {
-                    if (receiver.threadMode() == 1) {
-                        body.append("com.comers.okbus.OkBus.getDefault().getHandler().post(new Runnable() {\n" +
-                                "                @Override\n" +
-                                "                public void run() {\n" +
-                                "to." + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")param);" +
-                                "                }\n" +
-                                "            });");
-                    } else if (receiver.threadMode() == 2 || receiver.threadMode() == 3) {
-                        body.append("com.comers.okbus.OkBus.getDefault().getExecutors().submit(new Runnable() {\n" +
-                                "                @Override\n" +
-                                "                public void run() {\n" +
-                                "to." + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")param);" +
-                                "                }\n" +
-                                "            });");
+                String name = typeName.toString();
+                if (name.contains("<") && name.contains(">")) {
+                    String posName = "pos" + i;
+                    buffer.append("com.comers.okbus.PostData<" + name + "> " + posName + "=new com.comers.okbus.PostData<" + name + ">(){};\n");
+                    buffer.append(containsFans?"":"else"+"            if (com.comers.okbus.ClassTypeHelper.equals(((com.comers.okbus.PostData) obj).getType(), "+posName+".getType())) {\n");
+                    containsFans = true;
+                    if (receiver != null) {
+                        if (receiver.threadMode() == 1) {
+                            buffer.append("com.comers.okbus.OkBus.getDefault().getHandler().post(new Runnable() {\n" +
+                                    "                @Override\n" +
+                                    "                public void run() {\n" +
+                                    "to." + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")((com.comers.okbus.PostData) param).data);" +
+                                    "                }\n" +
+                                    "            });");
+                        } else if (receiver.threadMode() == 2 || receiver.threadMode() == 3) {
+                            buffer.append("com.comers.okbus.OkBus.getDefault().getExecutors().submit(new Runnable() {\n" +
+                                    "                @Override\n" +
+                                    "                public void run() {\n" +
+                                    "to." + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")((com.comers.okbus.PostData) param).data);" +
+                                    "                }\n" +
+                                    "            });");
+                        }
                     }
+                    buffer.append("}\n");
+                } else {
+                    containsNormal = true;
+                    body.append(prefix + " if(obj.getClass().equals(" + method.getParameters().get(0).asType().toString() + ".class)){\n");
+                    if (receiver != null) {
+                        if (receiver.threadMode() == 1) {
+                            body.append("com.comers.okbus.OkBus.getDefault().getHandler().post(new Runnable() {\n" +
+                                    "                @Override\n" +
+                                    "                public void run() {\n" +
+                                    "to." + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")param);" +
+                                    "                }\n" +
+                                    "            });");
+                        } else if (receiver.threadMode() == 2 || receiver.threadMode() == 3) {
+                            body.append("com.comers.okbus.OkBus.getDefault().getExecutors().submit(new Runnable() {\n" +
+                                    "                @Override\n" +
+                                    "                public void run() {\n" +
+                                    "to." + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")param);" +
+                                    "                }\n" +
+                                    "            });");
+                        }
+                    }
+                    body.append("}\n");
                 }
-                body.append("}");
 
                 if (receiver.tag() != null && !receiver.tag().isEmpty()) {
-                    initTag.addStatement("tags.add(\""+receiver.tag()+"\")");
+                    initTag.addStatement("tags.add(\"" + receiver.tag() + "\")");
                 }
             }
-            post.addStatement(body.toString());
+            buffer.append("}");
+            bodyReturn.append("return null");
+            if (containsNormal) {
+                buffer.append("else ");
+                buffer.append(body.toString());
+            }
+            post.addStatement(buffer.toString());
+
+            postReturn.addStatement(bodyReturn.toString());
             helper.addMethod(post.build());
             helper.addMethod(initTag.build());
+//            helper.addMethod(postReturn.build());
             JavaFile javaFile = JavaFile.builder(getPackage(element.getQualifiedName().toString()), helper.build()).build();
 
             try {
