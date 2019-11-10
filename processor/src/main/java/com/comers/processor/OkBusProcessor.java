@@ -144,21 +144,21 @@ public class OkBusProcessor extends AbstractProcessor {
                 if (name.contains("<") && name.contains(">")) {
                     String posName = "pos" + i;
                     buffer.append("com.comers.okbus.PostData<" + name + "> " + posName + "=new com.comers.okbus.PostData<" + name + ">(){};\n");
-                    buffer.append(containsFans?"":"else"+"            if (com.comers.okbus.ClassTypeHelper.equals(((com.comers.okbus.PostData) obj).getType(), "+posName+".getType())) {\n");
+                    buffer.append(containsFans?"else":""+"  if (com.comers.okbus.ClassTypeHelper.equals(((com.comers.okbus.PostData) obj).getType(), "+posName+".getType())) {\n");
                     containsFans = true;
                     if (receiver != null) {
                         if (receiver.threadMode() == 1) {
-                            buffer.append("com.comers.okbus.OkBus.getDefault().getHandler().post(new Runnable() {\n" +
+                            buffer.append("  com.comers.okbus.OkBus.getDefault().getHandler().post(new Runnable() {\n" +
                                     "                @Override\n" +
                                     "                public void run() {\n" +
-                                    "to." + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")((com.comers.okbus.PostData) param).data);" +
+                                    "              to." + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")((com.comers.okbus.PostData) param).data);" +
                                     "                }\n" +
                                     "            });");
                         } else if (receiver.threadMode() == 2 || receiver.threadMode() == 3) {
-                            buffer.append("com.comers.okbus.OkBus.getDefault().getExecutors().submit(new Runnable() {\n" +
+                            buffer.append("  com.comers.okbus.OkBus.getDefault().getExecutors().submit(new Runnable() {\n" +
                                     "                @Override\n" +
                                     "                public void run() {\n" +
-                                    "to." + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")((com.comers.okbus.PostData) param).data);" +
+                                    "               to." + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")((com.comers.okbus.PostData) param).data);" +
                                     "                }\n" +
                                     "            });");
                         }
@@ -169,17 +169,17 @@ public class OkBusProcessor extends AbstractProcessor {
                     body.append(prefix + " if(obj.getClass().equals(" + method.getParameters().get(0).asType().toString() + ".class)){\n");
                     if (receiver != null) {
                         if (receiver.threadMode() == 1) {
-                            body.append("com.comers.okbus.OkBus.getDefault().getHandler().post(new Runnable() {\n" +
+                            body.append("  com.comers.okbus.OkBus.getDefault().getHandler().post(new Runnable() {\n" +
                                     "                @Override\n" +
                                     "                public void run() {\n" +
-                                    "to." + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")param);" +
+                                    "                  to." + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")param);" +
                                     "                }\n" +
                                     "            });");
                         } else if (receiver.threadMode() == 2 || receiver.threadMode() == 3) {
                             body.append("com.comers.okbus.OkBus.getDefault().getExecutors().submit(new Runnable() {\n" +
                                     "                @Override\n" +
                                     "                public void run() {\n" +
-                                    "to." + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")param);" +
+                                    "                 to." + method.getSimpleName() + "((" + method.getParameters().get(0).asType().toString() + ")param);" +
                                     "                }\n" +
                                     "            });");
                         }
