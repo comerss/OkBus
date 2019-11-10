@@ -30,7 +30,7 @@ public class OkBusActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 OkBus.getDefault().post("我是来自 OKBusActivity 的数据");
-                OkBus.getDefault().post(11);
+                OkBus.getDefault().post(11,"MainActivity");
                 OkData<Success> data = new OkData<>();
                 data.data = new Success("我的数据来自泛型");
                 OkBus.getDefault().post(new PostData<OkData<Success>>(data) {

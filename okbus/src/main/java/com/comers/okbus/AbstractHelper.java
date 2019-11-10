@@ -4,6 +4,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -23,5 +24,20 @@ public class AbstractHelper {
         return null;
     }
 
-
+    public boolean checkNull(WeakReference reference) {
+        if (reference == null || reference.get() == null) {
+            return true;
+        }
+        final Object to = reference.get();
+        if (to == null || to instanceof android.app.Activity && ((android.app.Activity) to).isFinishing()) {
+            return true;
+        }
+        return false;
+    }
+    public boolean checkNull(Object to) {
+        if (to == null || to instanceof android.app.Activity && ((android.app.Activity) to).isFinishing()) {
+            return true;
+        }
+        return false;
+    }
 }
