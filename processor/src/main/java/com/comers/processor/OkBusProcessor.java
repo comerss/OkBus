@@ -143,7 +143,7 @@ public class OkBusProcessor extends AbstractProcessor {
                 String name = typeName.toString();
                 if (name.contains("<") && name.contains(">")) {
                     String posName = "pos" + i;
-                    buffer.append("com.comers.okbus.PostData<" + name + "> " + posName + "=new com.comers.okbus.PostData<" + name + ">(){};\n");
+                    buffer.append("   com.comers.okbus.PostData<" + name + "> " + posName + "=new com.comers.okbus.PostData<" + name + ">(){};\n");
                     buffer.append(containsFans?"else":""+"  if (com.comers.okbus.ClassTypeHelper.equals(((com.comers.okbus.PostData) obj).getType(), "+posName+".getType())) {\n");
                     containsFans = true;
                     if (receiver != null) {
