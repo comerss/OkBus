@@ -12,6 +12,9 @@ import com.comers.annotation.annotation.EventReceiver;
 import com.comers.annotation.mode.Mode;
 import com.comers.okbus.OkBus;
 
+import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
+
 public class MainActivity extends AppCompatActivity {
 
     private TextView txShowText;
@@ -36,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
         txShowText.setText(hahha + "---->00000");
     }
 
-    @EventReceiver(threadMode = Mode.BACKGROUND)
+    @EventReceiver(threadMode = Mode.MAIN)
     public void changed(String hahha) {
         txShowText.setText(hahha + "---->00000");
     }

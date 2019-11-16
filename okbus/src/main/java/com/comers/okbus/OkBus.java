@@ -13,7 +13,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class OkBus {
-    static OkBus INSTANCE;
+    private volatile static OkBus INSTANCE;
+    //存储每个类对应的辅助类
     private LinkedHashMap<Class, ? extends AbstractHelper> objDeque = new LinkedHashMap<>();
 
     private OkBus() {
@@ -21,7 +22,11 @@ public class OkBus {
 
     public static OkBus getDefault() {
         if (INSTANCE == null) {
-            INSTANCE = new OkBus();
+            synchronized (OkBus.class) {
+                if (INSTANCE == null) {
+                    INSTANCE = new OkBus();
+                }
+            }
         }
         return INSTANCE;
     }
@@ -33,7 +38,7 @@ public class OkBus {
             helper.post(obj);
         }
     }
-
+    //发送给一组
     public <T> void post(T event, Class... to) {
         for (Class cla : to) {
             AbstractHelper helper = objDeque.get(cla);
@@ -42,7 +47,7 @@ public class OkBus {
             }
         }
     }
-
+    //发送给一组 tag
     public <T> void post(T event, String... tag) {
         Iterator it = this.objDeque.values().iterator();
         while (it.hasNext()) {
@@ -56,20 +61,12 @@ public class OkBus {
     }
 
 
-    public <T> T post(Class<T> tClass, Object text, Class to) {
+    public <T> T post(T tClass, Object text, Class to) {
         AbstractHelper helper = objDeque.get(to);
         if (helper != null) {
             return helper.post(tClass, text);
         }
         return null;
-    }
-
-    public <T> void post(Class<T> tClass, Object text) {
-        Iterator it = this.objDeque.values().iterator();
-        while (it.hasNext()) {
-            AbstractHelper helper = (AbstractHelper) it.next();
-            helper.post(tClass, text);
-        }
     }
 
 

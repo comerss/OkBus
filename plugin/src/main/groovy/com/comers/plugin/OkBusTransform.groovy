@@ -135,47 +135,6 @@ class OkBusTransform extends Transform {
         pool.clearImportedPackages()
     }
 
-
-    private void findTarget(File dir, String fileName) {
-        if (dir.isDirectory()) {
-            dir.listFiles().each {
-                findTarget(it, fileName)
-            }
-        } else {
-            modify(dir, fileName)
-        }
-    }
-
-    private void modify(File dir, String fileName) {
-
-        def filePath = dir.absolutePath
-
-        if (!filePath.endsWith(SdkConstants.DOT_CLASS)) {
-            return
-        }
-        if (filePath.contains('R$') || filePath.contains('R.class')
-                || filePath.contains("BuildConfig.class")) {
-            return
-        }
-        def className = filePath.replace(fileName, "")
-                .replace("\\", ".")
-                .replace("/", ".")
-
-        def name = className.replace(SdkConstants.DOT_CLASS, "").substring(1)
-
-        if (name.startsWith(".")) {
-            name = name.substring(1, name.length())
-        }
-
-        if (!helper.getInfo().contains(name) || name.endsWith("_Helper")) {
-            return
-        }
-
-//        createNewFile(dir, name)
-
-    }
-    Class EventReceiver
-
     private void createNewFile(String name) {
         CtClass ctClass = pool.get(name)
         if (ctClass.isFrozen()) {
@@ -225,79 +184,6 @@ class OkBusTransform extends Transform {
         register.insertAfter(buffer.toString())
         okbus.writeFile(destDir)
 
-    }
-
-
-    String getClazzName(String fileName) {
-        String name = fileName.substring(fileName.lastIndexOf(".") + 1, fileName.length())
-        return name
-    }
-
-
-    public void createHelper(CtClass ctClass) {
-        //生成对应的辅助文件 作为调用的桥梁
-        CtClass helper = pool.makeClass("com.comers.okbus." + getClazzName(ctClass.getName()) + "_Helper")
-        CtClass helperSuper = pool.get("com.comers.okbus.AbstractHelper")
-        helperSuper.defrost()
-        helper.setSuperclass(helperSuper)
-
-        //成员变量 目标类，也就是最终调用方法的类
-        CtField ctField = CtField.make("java.lang.ref.WeakReference target;", helper)
-        helper.addField(ctField)
-
-        //构造函数
-        CtConstructor constructor = CtNewConstructor.make("public " + getClazzName(ctClass.getName()) + " (" + ctClass.getName() +
-                " target){this.target = new java.lang.ref.WeakReference(target);}", helper)
-        helper.addConstructor(constructor)
-
-        //构造post方法 并进行事件分发
-        StringBuffer postBody = new StringBuffer()
-        StringBuffer tagBody = new StringBuffer()
-        tagBody.append("public void initTag(){")
-        postBody.append("public void post( java.lang.Object obj){")
-        postBody.append("final " + ctClass.getName() + " to =(" + ctClass.getName().toString() + ")target.get();")
-                .append("if(to==null||to instanceof android.app.Activity&&((android.app.Activity)to).isFinishing()){\n" +
-                        "            return;\n" +
-                        "        }")
-        for (CtMethod ctMethod : methodList) {
-            postBody.append("if(obj.getClass().getName().equals(" + "\"" + ctMethod.getParameterTypes()[0].name + "\"" + ")){")
-            def annotations = ctMethod.getAnnotation(EventReceiver)
-            def annotation = annotations.getAt("h").getAt("annotation")
-            LinkedHashMap members = annotation.getAt("members")
-            if (members.get("tag") != null) {
-                StringMemberValue obj = members.get("tag").getAt("value")
-                tagBody.append("tags.add(\"" + obj.value + "\");")
-            }
-            IntegerMemberValue integerMemberValue = members.get("threadMode").getAt("value")
-
-            if (integerMemberValue.value == 1) {
-                postBody.append("final java.lang.Object param=obj;")
-                postBody.append("handler.post(new java.lang.Runnable() {\n" +
-                        "                public void run() {\n" +
-                        "to." + ctMethod.name + "((" + ctMethod.getParameterTypes()[0].name.toString() + ")param);" +
-                        "                }\n" +
-                        "            }); }")
-            } else if (integerMemberValue.value == 2 || integerMemberValue.value == 3) {
-                postBody.append("final java.lang.Object param=obj;")
-                postBody.append("executors.submit(new java.lang.Runnable() {\n" +
-                        "                public void run() {\n" +
-                        "to." + ctMethod.name + "((" + ctMethod.getParameterTypes()[0].name.toString() + ")param);" +
-                        "                }\n" +
-                        "            }); }")
-            } else {
-                postBody.append("to." + ctMethod.name + "((" + ctMethod.getParameterTypes()[0].name.toString() + ")obj);}")
-            }
-        }
-
-        postBody.append("}")
-        tagBody.append("}")
-        println(postBody.toString())
-        CtMethod post = CtNewMethod.make(postBody.toString(), helper)
-        CtMethod tag = CtNewMethod.make(tagBody.toString(), helper)
-        helper.addMethod(post)
-        helper.addMethod(tag)
-        helper.writeFile(destDir)
-        helper.defrost()
     }
 
 }

@@ -9,6 +9,7 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
 public class AbstractHelper {
@@ -21,7 +22,7 @@ public class AbstractHelper {
     public <T> void post(T text, String tag) {
     }
 
-    public <T> T post(Class<T> tClass, Object text) {
+    public <T> T post(T tClass, Object text) {
         return null;
     }
 

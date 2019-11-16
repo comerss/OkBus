@@ -44,6 +44,11 @@ public class OkBusActivity extends AppCompatActivity {
         txShowText.setText(hahha.data.show);
     }
 
+    @EventReceiver(threadMode = Mode.BACKGROUND)
+    public Success change(String hahha) {
+        return null;
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
