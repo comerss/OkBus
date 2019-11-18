@@ -34,11 +34,11 @@ public class OkBus {
     public <T> void post(T obj) {
         Iterator it = this.objDeque.keySet().iterator();
         while (it.hasNext()) {
-            Class to= (Class) it.next();
+            Class to = (Class) it.next();
             AbstractHelper helper = (AbstractHelper) objDeque.get(to);
-            if(helper!=null){
+            if (helper != null) {
                 helper.post(obj);
-            }else{
+            } else {
                 objDeque.remove(to);
             }
         }
@@ -47,11 +47,11 @@ public class OkBus {
     //发送给一组
     public <T> void post(T event, Class... to) {
         for (Class cla : to) {
-            if(objDeque.containsKey(to)){
+            if (objDeque.containsKey(to)) {
                 AbstractHelper helper = objDeque.get(cla);
                 if (helper != null) {
                     helper.post(event);
-                }else{
+                } else {
                     objDeque.remove(cla);
                 }
             }
@@ -62,7 +62,7 @@ public class OkBus {
     public <T> void post(T event, String... tag) {
         Iterator it = this.objDeque.keySet().iterator();
         while (it.hasNext()) {
-            Class cl= (Class) it.next();
+            Class cl = (Class) it.next();
             AbstractHelper helper = (AbstractHelper) objDeque.get(cl);
             if (helper != null) {
                 for (String ta : tag) {
@@ -70,7 +70,7 @@ public class OkBus {
                         helper.post(event, ta);
                     }
                 }
-            }else{
+            } else {
                 objDeque.remove(cl);
             }
         }
@@ -81,7 +81,7 @@ public class OkBus {
         AbstractHelper helper = objDeque.get(to);
         if (helper != null) {
             return helper.post(tClass, text);
-        }else{
+        } else {
             objDeque.remove(to);
         }
         return null;
@@ -89,14 +89,18 @@ public class OkBus {
 
 
     public void register(Object target) {
-        if (objDeque.containsKey(target.getClass())) {
-            return;
+        if (target != null) {
+            if (objDeque.containsKey(target.getClass())) {
+                return;
+            }
         }
     }
 
     public void unregister(Object target) {
-        if (objDeque.containsKey(target.getClass())) {
-            objDeque.remove(target.getClass());
+        if (target != null) {
+            if (objDeque.containsKey(target.getClass())) {
+                objDeque.remove(target.getClass());
+            }
         }
     }
 
