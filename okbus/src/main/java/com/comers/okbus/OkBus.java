@@ -32,30 +32,46 @@ public class OkBus {
     }
 
     public <T> void post(T obj) {
-        Iterator it = this.objDeque.values().iterator();
+        Iterator it = this.objDeque.keySet().iterator();
         while (it.hasNext()) {
-            AbstractHelper helper = (AbstractHelper) it.next();
-            helper.post(obj);
-        }
-    }
-    //发送给一组
-    public <T> void post(T event, Class... to) {
-        for (Class cla : to) {
-            AbstractHelper helper = objDeque.get(cla);
-            if (helper != null) {
-                helper.post(event);
+            Class to= (Class) it.next();
+            AbstractHelper helper = (AbstractHelper) objDeque.get(to);
+            if(helper!=null){
+                helper.post(obj);
+            }else{
+                objDeque.remove(to);
             }
         }
     }
+
+    //发送给一组
+    public <T> void post(T event, Class... to) {
+        for (Class cla : to) {
+            if(objDeque.containsKey(to)){
+                AbstractHelper helper = objDeque.get(cla);
+                if (helper != null) {
+                    helper.post(event);
+                }else{
+                    objDeque.remove(cla);
+                }
+            }
+        }
+    }
+
     //发送给一组 tag
     public <T> void post(T event, String... tag) {
-        Iterator it = this.objDeque.values().iterator();
+        Iterator it = this.objDeque.keySet().iterator();
         while (it.hasNext()) {
-            AbstractHelper helper = (AbstractHelper) it.next();
-            for (String ta : tag) {
-                if (helper.tags.contains(ta)) {
-                    helper.post(event, ta);
+            Class cl= (Class) it.next();
+            AbstractHelper helper = (AbstractHelper) objDeque.get(cl);
+            if (helper != null) {
+                for (String ta : tag) {
+                    if (helper.tags.contains(ta)) {
+                        helper.post(event, ta);
+                    }
                 }
+            }else{
+                objDeque.remove(cl);
             }
         }
     }
@@ -65,6 +81,8 @@ public class OkBus {
         AbstractHelper helper = objDeque.get(to);
         if (helper != null) {
             return helper.post(tClass, text);
+        }else{
+            objDeque.remove(to);
         }
         return null;
     }
