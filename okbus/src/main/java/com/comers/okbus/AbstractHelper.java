@@ -36,14 +36,6 @@ public class AbstractHelper {
         }
         return false;
     }
-
-    public boolean checkNull(Object to) {
-        if (to == null || to instanceof android.app.Activity && ((android.app.Activity) to).isFinishing()) {
-            return true;
-        }
-        return false;
-    }
-
     public boolean checkTag(String tag, String tag1) {
         if (tag == null || tag.isEmpty() || !tag1.isEmpty()&&TextUtils.equals(tag, tag1)) {
             return true;
