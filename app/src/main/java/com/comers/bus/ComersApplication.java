@@ -5,7 +5,7 @@ import android.content.Context;
 import android.support.multidex.MultiDex;
 import android.support.multidex.MultiDexApplication;
 
-public class ComesApplcaition extends Application {
+public class ComersApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();

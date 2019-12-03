@@ -15,6 +15,7 @@ import com.comers.okbus.PostData;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class OkBusActivity extends AppCompatActivity {
 
@@ -31,9 +32,9 @@ public class OkBusActivity extends AppCompatActivity {
             public void onClick(View v) {
                 OkBus.getDefault().post("我是来自 OKBusActivity 的数据");
                 //发送带tag 的数据，进行过滤，不区分页面，只要方法的tag一样则进行调用，当然我们会进行参数类型的校验
-                OkBus.getDefault().post(11, "MainActivity");
+//                OkBus.getDefault().post(11, "MainActivity");
                 //发送给多个页面的。前提是对应的页面能支持这个类型的参数
-                OkBus.getDefault().post("我是一个多个页面的发送", OkBusActivity.class, MainActivity.class);
+//                OkBus.getDefault().post("我是一个多个页面的发送", MainActivity.class);
                 OkData<Success> data = new OkData<>();
                 data.data = new Success("我的数据来自泛型");
                 //发送泛型数据相对复杂一些，需要把数据存出来我实现写好的类里面，并且注意后面的{}，有点类似于Gson 的TypeToken获取数据的泛型
@@ -43,7 +44,7 @@ public class OkBusActivity extends AppCompatActivity {
         });
     }
 
-    @EventReceiver(threadMode = Mode.POST_THREAD, tag = "OkActivity")
+    @EventReceiver(threadMode = Mode.POST_THREAD, tag = "OkActivity_changed")
     public void changed(OkData<Success> hahha) {
         txShowText.setText(hahha.data.show);
     }
