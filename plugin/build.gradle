@@ -1,8 +1,11 @@
 apply plugin: 'groovy'
-apply plugin: 'maven'
+//apply plugin: 'maven'
 apply plugin: 'java'
-//apply plugin: 'com.github.dcendents.android-maven'
-//group 'com.comers.okbus.plugin'
+apply plugin: 'com.github.dcendents.android-maven'
+group 'com.comers.okbus.plugin'
+version = '1.0'
+
+
 dependencies {
     //gradle sdk
     implementation gradleApi()
@@ -22,8 +25,9 @@ repositories {
     jcenter()
     maven { url 'http://maven.aliyun.com/nexus/content/groups/public/'}
     mavenLocal()
+    maven { url "https://jitpack.io" }
 }
-uploadArchives {
+/*uploadArchives {
     repositories {
         mavenDeployer {
             pom.groupId = 'com.comers.okbus'   //groupId
@@ -38,4 +42,26 @@ uploadArchives {
 
         }
     }
+}*/
+
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+
+task classesJar(type: Jar) {
+    from "$buildDir/intermediates/classes/release"
+}
+
+artifacts {
+    archives classesJar
+    archives javadocJar
+    archives sourcesJar
 }
