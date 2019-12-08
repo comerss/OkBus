@@ -42,7 +42,10 @@ public class OkBus {
             return;
         }
         List<AbstractHelper> helperList = paramDeque.get(obj.getClass());
-        if(helperList==null){
+        if (obj instanceof PostData) {
+            helperList = paramDeque.get(((PostData) obj).getDataClass());
+        }
+        if (helperList == null) {
             return;
         }
         Iterator it = helperList.iterator();
@@ -50,7 +53,7 @@ public class OkBus {
             AbstractHelper helper = (AbstractHelper) it.next();
             if (checkHelper(helper)) {
                 helper.post(obj);
-            }else{
+            } else {
                 removeHelper(helper);
             }
         }
@@ -76,7 +79,10 @@ public class OkBus {
             return;
         }
         List<AbstractHelper> helperList = paramDeque.get(event.getClass());
-        if(helperList==null){
+        if (event instanceof PostData) {
+            helperList = paramDeque.get(event.getClass());
+        }
+        if (helperList == null) {
             return;
         }
         Iterator it = helperList.iterator();
@@ -142,6 +148,8 @@ public class OkBus {
                     helperList = new ArrayList<>();
                 }
                 helperList.add(helper);
+                paramDeque.put(cls, helperList);
+                System.out.println("--->" + cls.getCanonicalName() + "---");
             }
         }
     }
@@ -152,8 +160,9 @@ public class OkBus {
         }
         return false;
     }
+
     private void removeHelper(AbstractHelper helper) {
-        if(helper!=null){
+        if (helper != null) {
 
         }
     }

@@ -6,6 +6,7 @@ import com.android.build.api.transform.QualifiedContent
 import com.android.build.api.transform.Transform
 import com.android.build.api.transform.TransformInvocation
 import com.android.build.gradle.internal.pipeline.TransformManager
+import com.squareup.javapoet.CodeBlock
 import javassist.*
 import javassist.bytecode.annotation.IntegerMemberValue
 import javassist.bytecode.annotation.StringMemberValue
@@ -116,7 +117,7 @@ class OkBusTransform extends Transform {
             }
 
         }
-
+        pool.removeClassPath(destDir)
         pool.clearImportedPackages()
     }
     Class EventReceiver
@@ -172,11 +173,11 @@ class OkBusTransform extends Transform {
             return
         }
         println "------------ " + name
-        buffer.append("if(android.text.TextUtils.equals(target.getClass().getName().toString(),\"" + ctClass.getName() + "\")&&!objDeque.containsKey(target.getClass())){\n")
-        buffer.append(ctClass.getName() + "_Helper helper=" + "new " + ctClass.getName() + "_Helper" + "((" + ctClass.getName() + ")target);\n")
-        buffer.append("registerParam(helper);")
-        buffer.append("this.objDeque.put(target.getClass(), helper);\n")
-        buffer.append("return;\n")
+        buffer.append($/if(android.text.TextUtils.equals($1.getClass().getName().toString(),/$+"\"" + ctClass.getName() +"\"" + $/)&&!objDeque.containsKey($1.getClass())){/$)
+        buffer.append("\n"+ctClass.getName() + "_Helper helper=" + "new " + ctClass.getName() + "_Helper" + "((" + ctClass.getName() + $/)$1);/$)
+        buffer.append("\n"+"registerParam(helper);")
+        buffer.append("\n"+$/this.objDeque.put($1.getClass(), helper);/$)
+        buffer.append("\nreturn;\n")
         buffer.append("}\n")
 
         println(buffer.toString())
@@ -191,14 +192,14 @@ class OkBusTransform extends Transform {
         if (okbus.isFrozen()) {
             okbus.defrost()
         }
-        buffer = new StringBuffer("{if (target == null || objDeque.contains(target.getClass())) {\n" +
+        buffer = new StringBuffer($/{if ($1 == null || objDeque.contains($1.getClass())) {/$ +
                 "            return;\n" +
                 "        }\n").append(buffer.toString()).append("}")
         //修改注册方法
         CtMethod register = okbus.getDeclaredMethod("register")
-        register.insertAfter(buffer.toString())
+        register.setBody(buffer.toString())
         okbus.writeFile(destDir)
-
+        okbus.detach()
     }
 
 }

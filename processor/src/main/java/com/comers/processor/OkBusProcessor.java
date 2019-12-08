@@ -91,7 +91,7 @@ public class OkBusProcessor extends AbstractProcessor {
             TypeSpec.Builder helper = TypeSpec.classBuilder(element.getSimpleName() + "_Helper");
             helper.addModifiers(Modifier.PUBLIC);
             helper.superclass(ClassName.get("com.comers.okbus", "AbstractHelper"));
-            helper.addField(ClassName.get("java.lang.ref", "WeakReference"), "target", Modifier.PRIVATE);
+//            helper.addField(ClassName.get("java.lang.ref", "WeakReference"), "target", Modifier.PRIVATE);
             helper.addMethod(MethodSpec.constructorBuilder()
                     .addParameter(ClassName.get(getPackage(element.getQualifiedName().toString()), element.getSimpleName().toString()), "target")
                     .addStatement("super(target)")

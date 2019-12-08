@@ -7,4 +7,8 @@ public  class PostData<T> implements PostCard<T> {
         this.data = data;
     }
     public PostData(){}
+
+    public Class getDataClass(){
+        return data.getClass();
+    }
 }
