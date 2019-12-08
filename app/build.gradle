@@ -1,5 +1,5 @@
 apply plugin: 'com.android.application'
-apply plugin: 'com.comers.plugin'
+//apply plugin: 'com.comers.plugin'
 
 android {
     compileSdkVersion 28
