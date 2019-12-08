@@ -94,7 +94,7 @@ public class OkBusProcessor extends AbstractProcessor {
             helper.addField(ClassName.get("java.lang.ref", "WeakReference"), "target", Modifier.PRIVATE);
             helper.addMethod(MethodSpec.constructorBuilder()
                     .addParameter(ClassName.get(getPackage(element.getQualifiedName().toString()), element.getSimpleName().toString()), "target")
-                    .addStatement("this.target=new $T(target)", ClassName.get("java.lang.ref", "WeakReference"))
+                    .addStatement("super(target)")
                     .addStatement("initTag()")
                     .addModifiers(Modifier.PUBLIC)
                     .build());
@@ -203,6 +203,12 @@ public class OkBusProcessor extends AbstractProcessor {
 
                 if (receiver.tag() != null && !receiver.tag().isEmpty()) {
                     initTag.addStatement("tags.add(\"" + receiver.tag() + "\")");
+                }
+                String paramName=method.getParameters().get(0).asType().toString();
+                if(paramName.contains("<")&&paramName.contains(">")){
+                    initTag.addStatement("paramList.add("+paramName.substring(0,paramName.indexOf("<"))+".class)");
+                }else{
+                    initTag.addStatement("paramList.add("+paramName+".class)");
                 }
             }
             buffer.append("}");

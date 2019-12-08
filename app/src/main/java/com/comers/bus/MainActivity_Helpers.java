@@ -14,8 +14,8 @@ public class MainActivity_Helpers extends AbstractHelper {
     WeakReference target;
     private LinkedHashMap<Class, ? extends AbstractHelper> objDeque = new LinkedHashMap();
 
-    public MainActivity_Helpers(MainActivity var1) {
-        this.target = new WeakReference(var1);
+    public MainActivity_Helpers(Object obj) {
+        super(obj);
     }
 
 

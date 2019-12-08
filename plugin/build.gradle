@@ -1,8 +1,8 @@
 apply plugin: 'groovy'
-//apply plugin: 'maven'
+apply plugin: 'maven'
 apply plugin: 'java'
-apply plugin: 'com.github.dcendents.android-maven'
-group 'com.comers.okbus.plugin'
+//apply plugin: 'com.github.dcendents.android-maven'
+//group 'com.comers.okbus.plugin'
 dependencies {
     //gradle sdk
     implementation gradleApi()
@@ -23,12 +23,11 @@ repositories {
     maven { url 'http://maven.aliyun.com/nexus/content/groups/public/'}
     mavenLocal()
 }
-/*
 uploadArchives {
     repositories {
         mavenDeployer {
-            pom.groupId = 'com.comers.okbus˜'   //groupId
-            pom.artifactId = 'comers'  //artifactId
+            pom.groupId = 'com.comers.okbus'   //groupId
+            pom.artifactId = 'plugin'  //artifactId
             pom.version = '1.0.0' //版本号
             //提交到远程服务器：
 //             repository(url: "http://www.xxx.com/repos") {
@@ -39,4 +38,4 @@ uploadArchives {
 
         }
     }
-}*/
+}
