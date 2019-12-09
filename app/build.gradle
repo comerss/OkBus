@@ -30,7 +30,7 @@ dependencies {
     implementation project(path: ':okbus')
     annotationProcessor project(path: ':processor')
     implementation 'com.android.support:multidex:1.0.3'
-//    implementation 'com.github.comerss:OkBus:1.0'
+    implementation 'com.github.comerss:OkBus:1.0'
 //    annotationProcessor 'com.github.comerss.OkBus:processor:1.0'
 }
 
