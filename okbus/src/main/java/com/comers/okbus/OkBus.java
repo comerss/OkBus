@@ -41,9 +41,11 @@ public class OkBus {
         if (obj == null) {
             return;
         }
-        List<AbstractHelper> helperList = paramDeque.get(obj.getClass());
+        List<AbstractHelper> helperList = null;
         if (obj instanceof PostData) {
             helperList = paramDeque.get(((PostData) obj).getDataClass());
+        } else {
+            helperList = paramDeque.get(obj.getClass());
         }
         if (helperList == null) {
             return;
@@ -78,8 +80,10 @@ public class OkBus {
         if (event == null) {
             return;
         }
-        List<AbstractHelper> helperList = paramDeque.get(event.getClass());
+        List<AbstractHelper> helperList ;
         if (event instanceof PostData) {
+            helperList = paramDeque.get(((PostData) event).getDataClass());
+        } else {
             helperList = paramDeque.get(event.getClass());
         }
         if (helperList == null) {
