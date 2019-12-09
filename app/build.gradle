@@ -1,5 +1,5 @@
 apply plugin: 'com.android.application'
-//apply plugin: 'com.comers.plugin'
+apply plugin: 'com.comers.plugin'
 
 android {
     compileSdkVersion 28
@@ -29,9 +29,9 @@ dependencies {
     implementation project(path: ':annotation')
     implementation project(path: ':okbus')
     annotationProcessor project(path: ':processor')
-    implementation 'com.android.support:multidex:1.0.3'
-//    implementation 'com.github.comerss:OkBus:1.0'
-//    annotationProcessor 'com.github.comerss.OkBus:processor:1.0'
+//    implementation 'com.android.support:multidex:1.0.3'
+//    implementation 'com.github.comerss.OkBus:okbus:0.1.2'
+//    annotationProcessor 'com.github.comerss.OkBus:processor:0.1.2'
 }
 
 

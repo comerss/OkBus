@@ -23,10 +23,6 @@ import java.util.concurrent.FutureTask;
 public class MainActivity extends AppCompatActivity {
 
     private TextView txShowText;
-    //存储每个类对应的辅助类
-    ConcurrentHashMap<Class, AbstractHelper> objDeque = new ConcurrentHashMap<>();
-    //参数 对应辅助类
-    ConcurrentHashMap<Class, List<AbstractHelper>> paramDeque = new ConcurrentHashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,31 +38,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        Object target=this;
-        if(android.text.TextUtils.equals(target.getClass().getName().toString(),"com.comers.bus.MainActivity")&&!objDeque.containsKey(target.getClass())){
-            com.comers.bus.MainActivity_Helper helper=new com.comers.bus.MainActivity_Helper((com.comers.bus.MainActivity)target);
-            for (int i=0;i<helper.paramList.size();i++) {
-                List<AbstractHelper> helperList = paramDeque.get(helper.paramList.get(i));
-                if (helperList == null) {
-                    helperList = new ArrayList<>();
-                }
-                helperList.add(helper);
-            }
-            this.objDeque.put(target.getClass(), helper);
-            return;
-        }
-        if(android.text.TextUtils.equals(target.getClass().getName().toString(),"com.comers.bus.OkBusActivity")&&!objDeque.containsKey(target.getClass())){
-            com.comers.bus.OkBusActivity_Helper helper=new com.comers.bus.OkBusActivity_Helper((com.comers.bus.OkBusActivity)target);
-            for (int i=0;i<helper.paramList.size();i++) {
-                List<AbstractHelper> helperList = paramDeque.get(helper.paramList.get(i));
-                if (helperList == null) {
-                    helperList = new ArrayList<>();
-                }
-                helperList.add(helper);
-            }
-            this.objDeque.put(target.getClass(), helper);
-            return;
-        }
     }
 
     @EventReceiver(tag = "MainActivity", threadMode = Mode.MAIN)

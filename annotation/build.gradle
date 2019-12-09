@@ -1,7 +1,7 @@
 apply plugin: 'java-library'
 apply plugin: 'com.github.dcendents.android-maven'
 group 'com.comers.okbus.annotation'
-version 0.1
+version '0.1.3'
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 }
