@@ -117,7 +117,6 @@ class OkBusTransform extends Transform {
             }
 
         }
-        pool.removeClassPath(destDir)
         pool.clearImportedPackages()
     }
     Class EventReceiver
