@@ -4,14 +4,19 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.view.View;
 import android.widget.TextView;
 
 
 import com.comers.annotation.annotation.EventReceiver;
 import com.comers.annotation.mode.Mode;
+import com.comers.okbus.AbstractHelper;
 import com.comers.okbus.OkBus;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 
@@ -32,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
+
     }
 
     @EventReceiver(tag = "MainActivity", threadMode = Mode.MAIN)

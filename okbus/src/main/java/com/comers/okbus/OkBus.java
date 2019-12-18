@@ -4,18 +4,24 @@ import android.drm.DrmStore;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.text.TextUtils;
 
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class OkBus {
-    private volatile static OkBus INSTANCE;
+    private static OkBus INSTANCE;
     //存储每个类对应的辅助类
-    private LinkedHashMap<Class, ? extends AbstractHelper> objDeque = new LinkedHashMap<>();
+    ConcurrentHashMap<Class, AbstractHelper> objDeque = new ConcurrentHashMap<>();
+    //参数 对应辅助类
+    ConcurrentHashMap<Class, List<AbstractHelper>> paramDeque = new ConcurrentHashMap<>();
 
     private OkBus() {
     }
@@ -32,14 +38,25 @@ public class OkBus {
     }
 
     public <T> void post(T obj) {
-        Iterator it = this.objDeque.keySet().iterator();
+        if (obj == null) {
+            return;
+        }
+        List<AbstractHelper> helperList = null;
+        if (obj instanceof PostData) {
+            helperList = paramDeque.get(((PostData) obj).getDataClass());
+        } else {
+            helperList = paramDeque.get(obj.getClass());
+        }
+        if (helperList == null) {
+            return;
+        }
+        Iterator it = helperList.iterator();
         while (it.hasNext()) {
-            Class to = (Class) it.next();
-            AbstractHelper helper = (AbstractHelper) objDeque.get(to);
-            if (helper != null) {
+            AbstractHelper helper = (AbstractHelper) it.next();
+            if (checkHelper(helper)) {
                 helper.post(obj);
             } else {
-                objDeque.remove(to);
+                removeHelper(helper);
             }
         }
     }
@@ -49,7 +66,7 @@ public class OkBus {
         for (Class cla : to) {
             if (objDeque.containsKey(to)) {
                 AbstractHelper helper = objDeque.get(cla);
-                if (helper != null) {
+                if (checkHelper(helper)) {
                     helper.post(event);
                 } else {
                     objDeque.remove(cla);
@@ -60,11 +77,23 @@ public class OkBus {
 
     //发送给一组 tag
     public <T> void post(T event, String... tag) {
-        Iterator it = this.objDeque.keySet().iterator();
+        if (event == null) {
+            return;
+        }
+        List<AbstractHelper> helperList ;
+        if (event instanceof PostData) {
+            helperList = paramDeque.get(((PostData) event).getDataClass());
+        } else {
+            helperList = paramDeque.get(event.getClass());
+        }
+        if (helperList == null) {
+            return;
+        }
+        Iterator it = helperList.iterator();
         while (it.hasNext()) {
             Class cl = (Class) it.next();
             AbstractHelper helper = (AbstractHelper) objDeque.get(cl);
-            if (helper != null) {
+            if (checkHelper(helper)) {
                 for (String ta : tag) {
                     if (helper.tags.contains(ta)) {
                         helper.post(event, ta);
@@ -79,7 +108,7 @@ public class OkBus {
 
     public <T> T post(T tClass, Object text, Class to) {
         AbstractHelper helper = objDeque.get(to);
-        if (helper != null) {
+        if (checkHelper(helper)) {
             return helper.post(tClass, text);
         } else {
             objDeque.remove(to);
@@ -89,22 +118,22 @@ public class OkBus {
 
 
     public void register(Object target) {
-        if (target != null) {
-            if (objDeque.containsKey(target.getClass())) {
-                return;
+
+    }
+
+    public void unregister(Object obj) {
+        if (obj != null && objDeque.contains(obj.getClass())) {
+            AbstractHelper helper = objDeque.get(obj.getClass());
+            if (helper != null) {
+                for (Class cls : helper.paramList) {
+                    paramDeque.get(cls).remove(helper);
+                }
             }
+            objDeque.remove(obj.getClass());
         }
     }
 
-    public void unregister(Object target) {
-        if (target != null) {
-            if (objDeque.containsKey(target.getClass())) {
-                objDeque.remove(target.getClass());
-            }
-        }
-    }
-
-    ExecutorService executors = Executors.newFixedThreadPool(5);
+    ExecutorService executors = Executors.newCachedThreadPool();
     Handler handler = new Handler(Looper.getMainLooper());
 
     public Handler getHandler() {
@@ -115,4 +144,30 @@ public class OkBus {
         return executors;
     }
 
+    void registerParam(AbstractHelper helper) {
+        if (helper != null) {
+            for (Class cls : helper.paramList) {
+                List<AbstractHelper> helperList = paramDeque.get(cls);
+                if (helperList == null) {
+                    helperList = new ArrayList<>();
+                }
+                helperList.add(helper);
+                paramDeque.put(cls, helperList);
+                System.out.println("--->" + cls.getCanonicalName() + "---");
+            }
+        }
+    }
+
+    boolean checkHelper(AbstractHelper helper) {
+        if (helper != null && helper.target != null && helper.target.get() != null) {
+            return true;
+        }
+        return false;
+    }
+
+    private void removeHelper(AbstractHelper helper) {
+        if (helper != null) {
+
+        }
+    }
 }

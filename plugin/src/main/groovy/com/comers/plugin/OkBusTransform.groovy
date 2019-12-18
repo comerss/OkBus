@@ -6,11 +6,13 @@ import com.android.build.api.transform.QualifiedContent
 import com.android.build.api.transform.Transform
 import com.android.build.api.transform.TransformInvocation
 import com.android.build.gradle.internal.pipeline.TransformManager
+import com.squareup.javapoet.CodeBlock
 import javassist.*
 import javassist.bytecode.annotation.IntegerMemberValue
 import javassist.bytecode.annotation.StringMemberValue
 import org.apache.commons.io.FileUtils
 import org.gradle.api.Project
+import sun.rmi.runtime.Log
 
 import javax.xml.crypto.dsig.TransformException
 
@@ -59,6 +61,7 @@ class OkBusTransform extends Transform {
                 pool.insertClassPath(it.file.absolutePath)
                 // 重命名输出文件（同目录copyFile会冲突）
                 def jarName = it.name
+                println(it.file.absolutePath+jarName)
                 def md5Name = DigestUtils.md5Hex(it.file.getAbsolutePath())
                 if (jarName.endsWith(".jar")) {
                     jarName = jarName.substring(0, jarName.length() - 4)
@@ -91,35 +94,19 @@ class OkBusTransform extends Transform {
                     FileUtils.deleteDirectory(file)
                 }
                 //将okbus 目录下的类不会被写到目标目录所以需要手动写到目录
-                CtClass absHelper = pool.get("com.comers.okbus.AbstractHelper")
-                absHelper.defrost()
-                absHelper.writeFile(destDir)
-
-                CtClass ClassTypeHelper = pool.get("com.comers.okbus.ClassTypeHelper")
-                ClassTypeHelper.defrost()
-                ClassTypeHelper.writeFile(destDir)
-
-                CtClass postCard = pool.get("com.comers.okbus.PostCard")
-                postCard.defrost()
-                postCard.writeFile(destDir)
-
-                CtClass ParameterizedTypeImpl = pool.get("com.comers.okbus.ParameterizedTypeImpl")
-                ParameterizedTypeImpl.defrost()
-                ParameterizedTypeImpl.writeFile(destDir)
-
-                CtClass PostData = pool.get("com.comers.okbus.PostData")
-                PostData.defrost()
-                PostData.writeFile(destDir)
+                copyOkbus(destDir)
                 Loader cl = new Loader(pool)
                 if (EventReceiver == null) {
                     EventReceiver = cl.loadClass("com.comers.annotation.annotation.EventReceiver")
                 }
                 //需要修改的文件的集合
                 def list = helper.getInfo()
+                def registerBuffer = new StringBuffer()
                 for (String str : list) {
-                    createNewFile(str)
+                    println "============: " + str
+                    createNewFile(str, registerBuffer)
                 }
-
+                editRegister(registerBuffer)
                 def dest = transformInvocation.outputProvider.getContentLocation(
                         it.name,
                         it.contentTypes,
@@ -131,11 +118,33 @@ class OkBusTransform extends Transform {
             }
 
         }
-
         pool.clearImportedPackages()
     }
+    Class EventReceiver
 
-    private void createNewFile(String name) {
+    private void copyOkbus(String destDir) {
+        CtClass absHelper = pool.get("com.comers.okbus.AbstractHelper")
+        absHelper.defrost()
+        absHelper.writeFile(destDir)
+
+        CtClass ClassTypeHelper = pool.get("com.comers.okbus.ClassTypeHelper")
+        ClassTypeHelper.defrost()
+        ClassTypeHelper.writeFile(destDir)
+
+        CtClass postCard = pool.get("com.comers.okbus.PostCard")
+        postCard.defrost()
+        postCard.writeFile(destDir)
+
+        CtClass ParameterizedTypeImpl = pool.get("com.comers.okbus.ParameterizedTypeImpl")
+        ParameterizedTypeImpl.defrost()
+        ParameterizedTypeImpl.writeFile(destDir)
+
+        CtClass PostData = pool.get("com.comers.okbus.PostData")
+        PostData.defrost()
+        PostData.writeFile(destDir)
+    }
+
+    private void createNewFile(String name, StringBuffer buffer) {
         CtClass ctClass = pool.get(name)
         if (ctClass.isFrozen()) {
             ctClass.defrost()
@@ -163,27 +172,34 @@ class OkBusTransform extends Transform {
             ctClass.detach()
             return
         }
+        println "------------ " + name
+        buffer.append($/if(android.text.TextUtils.equals($1.getClass().getName().toString(),/$+"\"" + ctClass.getName() +"\"" + $/)&&!objDeque.containsKey($1.getClass())){/$)
+        buffer.append("\n"+ctClass.getName() + "_Helper helper=" + "new " + ctClass.getName() + "_Helper" + "((" + ctClass.getName() + $/)$1);/$)
+        buffer.append("\n"+"registerParam(helper);")
+        buffer.append("\n"+$/this.objDeque.put($1.getClass(), helper);/$)
+        buffer.append("\nreturn;\n")
+        buffer.append("}\n")
+
+        println(buffer.toString())
 
 
+    }
+
+    void editRegister(StringBuffer buffer) {
         // 修改OkBus 来处理对应的能能够调用的方法
         //等遍历完所有的文件之后 我们需要修改 oKbus 来完成事件的真正分发 与 调用
         CtClass okbus = pool.get("com.comers.okbus.OkBus")
         if (okbus.isFrozen()) {
             okbus.defrost()
         }
-
-
+        buffer = new StringBuffer($/{if ($1 == null || objDeque.contains($1.getClass())) {/$ +
+                "            return;\n" +
+                "        }\n").append(buffer.toString()).append("}")
         //修改注册方法
         CtMethod register = okbus.getDeclaredMethod("register")
-        StringBuffer buffer = new StringBuffer()
-        buffer.append("if(android.text.TextUtils.equals(target.getClass().getName().toString(),\"" + ctClass.getName() + "\")&&!objDeque.containsKey(target.getClass())){")
-        buffer.append("objDeque.put(target.getClass(),")
-        buffer.append("new " + ctClass.getName() + "_Helper" + "((" + ctClass.getName() + ")target)")
-        buffer.append(");")
-        buffer.append("}")
-        register.insertAfter(buffer.toString())
+        register.setBody(buffer.toString())
         okbus.writeFile(destDir)
-
+        okbus.detach()
     }
 
 }

@@ -4,6 +4,7 @@ buildscript {
 
     repositories {
         maven{ url 'http://maven.aliyun.com/nexus/content/groups/public/'}
+        maven { url 'https://jitpack.io' }
         mavenCentral()
         google()
         jcenter()
@@ -14,21 +15,22 @@ buildscript {
             url uri("repo")
         }
 
-
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:3.5.0'
-        classpath 'com.comers.plugin:comers:1.0.0'
-
+//        classpath 'com.github.comerss.OkBus:plugin:0.1.2'
+        classpath 'com.comers.okbus:plugin:1.0.0'
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:2.1'
     }
 }
 
 allprojects {
     repositories {
         maven{ url 'http://maven.aliyun.com/nexus/content/groups/public/'}
+        maven { url 'https://jitpack.io' }
         google()
         jcenter()
         mavenCentral()
