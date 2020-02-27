@@ -122,7 +122,7 @@ public class OkBus {
     }
 
     public void unregister(Object obj) {
-        if (obj != null && objDeque.contains(obj.getClass())) {
+        if (obj != null && objDeque.containsKey(obj.getClass())) {
             AbstractHelper helper = objDeque.get(obj.getClass());
             if (helper != null) {
                 for (Class cls : helper.paramList) {
